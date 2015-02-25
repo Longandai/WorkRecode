@@ -1,0 +1,646 @@
+<?xml version="1.0" encoding="UTF-8"?><definitions
+ xmlns="http://schemas.xmlsoap.org/wsdl/"
+ xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+ xmlns:xsdLocal1="http://www.siebel.com/xml/SPI%20Interface%20Part%20IO"
+ targetNamespace="http://siebel.com/CustomUI"
+ xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"
+ xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+ xmlns:tns="http://siebel.com/CustomUI"
+><types
+><xsd:schema
+ elementFormDefault="qualified"
+ attributeFormDefault="unqualified"
+ xmlns:xsdLocal1="http://www.siebel.com/xml/SPI%20Interface%20Part%20IO"
+ targetNamespace="http://www.siebel.com/xml/SPI%20Interface%20Part%20IO"
+ xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+><xsd:annotation
+><xsd:documentation
+>Copyright (C) 2001-2004 Siebel Systems, Inc. All rights reserved. Siebel XSD Generation</xsd:documentation
+></xsd:annotation
+><xsd:element
+ name="ListOfSpiInterfacePartIo"
+ type="xsdLocal1:ListOfSpiInterfacePartIo"
+></xsd:element
+><xsd:complexType
+ name="ListOfSpiInterfacePartIoTopElmt"
+><xsd:sequence
+><xsd:element
+ name="ListOfSpiInterfacePartIo"
+ maxOccurs="1"
+ minOccurs="1"
+ type="xsdLocal1:ListOfSpiInterfacePartIo"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="ListOfSpiInterfacePartIo"
+><xsd:sequence
+><xsd:element
+ name="InternalProduct-IssAdmin"
+ maxOccurs="unbounded"
+ minOccurs="0"
+ type="xsdLocal1:InternalProduct-IssAdmin"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="InternalProduct-IssAdmin"
+><xsd:sequence
+><xsd:element
+ name="PartType"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ActiveFlag"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Comments"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Description"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ForecastQtyFlag"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="FunctionalPartFlag"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="GuaranteePeriod"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Height"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="InspectionCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="InspectionFlag"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMPartRowID"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="LeadTime"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Length"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MinDeliveryQty"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Name"
+ maxOccurs="1"
+ minOccurs="1"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ProcurementState"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ProductGroupA"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ProductGroupB"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ProductName"
+ maxOccurs="1"
+ minOccurs="1"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPICreated"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPICreatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIDataType"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIFamily"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIFamilyGroup"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIGlobalMDMUpdated"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIGlobalMDMUpdatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIMinShipUnit"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPINewProduct"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIPhysicalClassification"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIProductCategory"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ShipFlag"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Type"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="UnitofMeasure"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="VendorPartNumber"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Weight"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Wide"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ListOfSPIInterfacePartFactory"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsdLocal1:ListOfSPIInterfacePartFactory"
+></xsd:element
+><xsd:element
+ name="ListOfSPIInterfaceProductCountry"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsdLocal1:ListOfSPIInterfaceProductCountry"
+></xsd:element
+><xsd:element
+ name="ListOfInternalProductTranslation"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsdLocal1:ListOfInternalProductTranslation"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="ListOfSPIInterfacePartFactory"
+><xsd:sequence
+><xsd:element
+ name="SPIInterfacePartFactory"
+ maxOccurs="unbounded"
+ minOccurs="0"
+ type="xsdLocal1:SPIInterfacePartFactory"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="SPIInterfacePartFactory"
+><xsd:sequence
+><xsd:element
+ name="DeleteFlag"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="FactoryCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="LongPeriodicPurchase"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMCreated"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMCreatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMUpdated"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMUpdatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MaterialType"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="PurchaseGroup"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIActive"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIForSearchType"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIMasterPlantFlag"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIMinLotQty"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIMinPackingQty"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIOrgType"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIPartOrgName"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SPIProducingArea"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="SpecialMaterialType"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="ListOfSPIInterfaceProductCountry"
+><xsd:sequence
+><xsd:element
+ name="SPIInterfaceProductCountry"
+ maxOccurs="unbounded"
+ minOccurs="0"
+ type="xsdLocal1:SPIInterfaceProductCountry"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="SPIInterfaceProductCountry"
+><xsd:sequence
+><xsd:element
+ name="Type"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMUpdateBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMUpdateTime"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMCreatedTime"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMCreatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="OrganizationCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="DeleteFlag"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="CountryCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Country"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="CompanyCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ActiveFlag"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="ListOfInternalProductTranslation"
+><xsd:sequence
+><xsd:element
+ name="InternalProductTranslation"
+ maxOccurs="unbounded"
+ minOccurs="0"
+ type="xsdLocal1:InternalProductTranslation"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="InternalProductTranslation"
+><xsd:sequence
+><xsd:element
+ name="MDMUpdatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMCreatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMUpdatedTime"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMCreatedTime"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="LanguageCode"
+ maxOccurs="1"
+ minOccurs="1"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="LanguageName"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Reason"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+></xsd:schema
+><xsd:schema
+ elementFormDefault="qualified"
+ attributeFormDefault="unqualified"
+ targetNamespace="http://siebel.com/CustomUI"
+ xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+><xsd:import
+ namespace="http://www.siebel.com/xml/SPI%20Interface%20Part%20IO"
+></xsd:import
+><xsd:element
+ name="SPI_spcPart_spcImport_spcProcess_Input"
+><xsd:complexType
+><xsd:sequence
+><xsd:element
+ ref="xsdLocal1:ListOfSpiInterfacePartIo"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+></xsd:element
+><xsd:element
+ name="SPI_spcPart_spcImport_spcProcess_Output"
+><xsd:complexType
+><xsd:sequence
+><xsd:element
+ name="Error_spcCode"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Error_spcMessage"
+ type="xsd:string"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+></xsd:element
+></xsd:schema
+></types
+><message
+ name="SPI_spcPart_spcImport_spcProcess_Input"
+><part
+ name="SPI_spcPart_spcImport_spcProcess_Input"
+ element="tns:SPI_spcPart_spcImport_spcProcess_Input"
+></part
+></message
+><message
+ name="SPI_spcPart_spcImport_spcProcess_Output"
+><part
+ name="SPI_spcPart_spcImport_spcProcess_Output"
+ element="tns:SPI_spcPart_spcImport_spcProcess_Output"
+></part
+></message
+><portType
+ name="SPI_spcPart_spcImport_spcProcess"
+><operation
+ name="SPI_spcPart_spcImport_spcProcess"
+><input
+ message="tns:SPI_spcPart_spcImport_spcProcess_Input"
+></input
+><output
+ message="tns:SPI_spcPart_spcImport_spcProcess_Output"
+></output
+></operation
+></portType
+><binding
+ name="SPI_spcPart_spcImport_spcProcess"
+ type="tns:SPI_spcPart_spcImport_spcProcess"
+><soap:binding
+ transport="http://schemas.xmlsoap.org/soap/http"
+ style="document"
+></soap:binding
+><operation
+ name="SPI_spcPart_spcImport_spcProcess"
+><soap:operation
+ soapAction="document/http://siebel.com/CustomUI:SPI_spcPart_spcImport_spcProcess"
+></soap:operation
+><input
+><soap:body
+ use="literal"
+></soap:body
+></input
+><output
+><soap:body
+ use="literal"
+></soap:body
+></output
+></operation
+></binding
+><service
+ name="SPI_spcPart_spcImport_spcProcess"
+><port
+ binding="tns:SPI_spcPart_spcImport_spcProcess"
+ name="SPI_spcPart_spcImport_spcProcess"
+><soap:address
+ location="http://10.135.108.148:7777/eai_enu/start.swe?SWEExtSource=WebService&amp;SWEExtCmd=Execute&amp;UserName=EAIUSER&amp;Password=EAIUSER"
+></soap:address
+></port
+></service
+></definitions
+>

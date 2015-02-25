@@ -1,0 +1,69 @@
+create or replace view hrtsp_hm_product_customer as
+select a.ROW_ID, --信息ID
+       a.COMPANY_CODE, --公司编码
+       a.COMPANY_NAME_EN, --公司名称(英文)
+       a.COMPANY_NAME_ZH, --公司名称(中文)
+       case COMPANY_CODE
+         when '6620' then
+          'Key Customer'
+         when 'C00657' then
+          'OTC'
+         when 'C00658' then
+          'OTC'
+         else
+          a.COMPANY_TYPE
+       end COMPANY_TYPE, --公司类型
+       a.ABBREVIATION, --英文简称
+       a.DISTRICT_NO, --区号
+       a.APPLICANT, --申请人
+       a.APPLICANT_MAIL, --申请人邮箱
+       a.CONTACT_NAME, --联系人
+       a.CONTACT_MAIL, --邮箱地址
+       b.tsp_country COUNTRY, --国家
+       a.STATE, --州/省
+       a.CITY, --城市
+       a.LOCALITY, --区
+       a.ZIP_CODE, --邮编
+       a.DETAIL_ADDRESS, --详细地址
+       a.TEL, --电话
+       a.FAX, --传真
+       a.BANK, --银行
+       a.BANK_ACCOUNT, --银行帐号
+       decode(a.currency,
+              'FRF',
+              'French Franc',
+              'THB',
+              'Thai Baht',
+              'GBP',
+              'Pound',
+              'RUB',
+              'Russian Ruble',
+              'ITL',
+              'Italian Lira',
+              'GHC',
+              'Ghanaian Cedi',
+              'MYR',
+              'Malaysian Dollar',
+              'PHP',
+              'Philippine Peso',
+              'JOD',
+              'Jordanian Dinar',
+              'EUR',
+              'Euro',
+              'USD') CURRENCY, --货币
+       a.COMPANY_ADVANCES_PAYMENT, --公司预付款
+       a.LOCK_IN_AMOUNT, --锁定金额
+       a.SAP_NO, --SAP编号
+       a.DEPARTMENT_TYPE, --部门类型
+       a.SUPERIOR_DEPARTMENT, --上级部门
+       a.PART_SUPPORT_STOREHOUSE, --备件支持仓库
+       a.INVOICE_ADDRESS, --发票地址
+       a.ARRIVAL_DESTINATION, --目的地址
+       a.DESCRIPTION, --描述
+       a.CREATED_BY, --创建人_通用字段
+       a.CREATED, --创建时间_通用字段
+       a.LAST_UPD_BY, --最后更新人_通用字段
+       a.LAST_UPD, --最后更新时间_通用字段
+       a.DELETE_FLAG --删除标记:0正常,1删除(可选)_通用字段
+  from hm_product_customer a, hm_cd_counrtry_spi2tsp b
+ where a.country = b.country(+);

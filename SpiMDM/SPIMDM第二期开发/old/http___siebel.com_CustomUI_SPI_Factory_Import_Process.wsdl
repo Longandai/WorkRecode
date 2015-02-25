@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+    
+     targetNamespace="http://siebel.com/CustomUI"
+     xmlns="http://schemas.xmlsoap.org/wsdl/"
+     xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"
+     xmlns:tns="http://siebel.com/CustomUI"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+     xmlns:xsdLocal1="http://www.siebel.com/xml/SPI%20Interface%20Factory%20IO"
+     xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    >
+    <types>
+        <xsd:schema elementFormDefault="qualified" attributeFormDefault="unqualified" xmlns:xsdLocal1="http://www.siebel.com/xml/SPI%20Interface%20Factory%20IO"
+             targetNamespace="http://www.siebel.com/xml/SPI%20Interface%20Factory%20IO"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <xsd:annotation>
+                <xsd:documentation>Copyright (C) 2001-2004 Siebel Systems, Inc. All rights reserved. Siebel XSD Generation</xsd:documentation>
+            </xsd:annotation>
+            <xsd:element name="ListOfSpiInterfaceFactoryIo" type="xsdLocal1:ListOfSpiInterfaceFactoryIo"/>
+            <xsd:complexType name="ListOfSpiInterfaceFactoryIoTopElmt">
+                <xsd:sequence>
+                    <xsd:element name="ListOfSpiInterfaceFactoryIo" maxOccurs="1" minOccurs="1" type="xsdLocal1:ListOfSpiInterfaceFactoryIo"/>
+                </xsd:sequence>
+            </xsd:complexType>
+            <xsd:complexType name="ListOfSpiInterfaceFactoryIo">
+                <xsd:sequence>
+                    <xsd:element name="ChannelPartner" maxOccurs="unbounded" minOccurs="0" type="xsdLocal1:ChannelPartner"/>
+                </xsd:sequence>
+            </xsd:complexType>
+            <xsd:complexType name="ChannelPartner">
+                <xsd:sequence>
+                    <xsd:element name="PreparingFactoryCode" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MDMUpdatedTime" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MDMUpdatedBy" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MDMCreatedTime" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MDMCreatedBy" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="ZipCode" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="DetailAddress" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="Locality" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="City" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="State" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="Country" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="HOPECustomerCode" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="HOPEVendorCode" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MDMFactoryRowID" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="CurrencyCode" maxOccurs="1" minOccurs="1" type="xsd:string"/>
+                    <xsd:element name="ENUAlias" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MainEmailAddress" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MainFaxNumber" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MainPhoneNumber" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="Name" maxOccurs="1" minOccurs="1" type="xsd:string"/>
+                    <xsd:element name="ParentDivisionCode" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="Comments" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="CustomerCode" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="CHSAlias" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="CHSName" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="Status" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="PartnerSubType" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="PartnerType" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="FactoryCode" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="VendorCode" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="ListOfSpiPartnerServiceProduct" maxOccurs="1" minOccurs="0" type="xsdLocal1:ListOfSpiPartnerServiceProduct"/>
+                </xsd:sequence>
+            </xsd:complexType>
+            <xsd:complexType name="ListOfSpiPartnerServiceProduct">
+                <xsd:sequence>
+                    <xsd:element name="SpiPartnerServiceProduct" maxOccurs="unbounded" minOccurs="0" type="xsdLocal1:SpiPartnerServiceProduct"/>
+                </xsd:sequence>
+            </xsd:complexType>
+            <xsd:complexType name="SpiPartnerServiceProduct">
+                <xsd:sequence>
+                    <xsd:element name="UpdatedBy" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MDMUpdated" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MDMCreatedBy" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="MDMCreated" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="Category" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="Description" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                    <xsd:element name="Status" maxOccurs="1" minOccurs="0" type="xsd:string"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:schema>
+        <xsd:schema elementFormDefault="qualified" attributeFormDefault="unqualified" targetNamespace="http://siebel.com/CustomUI"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <xsd:import namespace="http://www.siebel.com/xml/SPI%20Interface%20Factory%20IO"/>
+            <xsd:element name="SPI_spcFactory_spcImport_spcProcess_Input">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element ref="xsdLocal1:ListOfSpiInterfaceFactoryIo"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="SPI_spcFactory_spcImport_spcProcess_Output">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="Error_spcCode" type="xsd:string"/>
+                        <xsd:element name="Error_spcMessage" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:schema>
+    </types>
+    <message name="SPI_spcFactory_spcImport_spcProcess_Input">
+        <part name="SPI_spcFactory_spcImport_spcProcess_Input" element="tns:SPI_spcFactory_spcImport_spcProcess_Input"/>
+    </message>
+    <message name="SPI_spcFactory_spcImport_spcProcess_Output">
+        <part name="SPI_spcFactory_spcImport_spcProcess_Output" element="tns:SPI_spcFactory_spcImport_spcProcess_Output"/>
+    </message>
+    <portType name="SPI_spcFactory_spcImport_spcProcess">
+        <operation name="SPI_spcFactory_spcImport_spcProcess">
+            <input message="tns:SPI_spcFactory_spcImport_spcProcess_Input"/>
+            <output message="tns:SPI_spcFactory_spcImport_spcProcess_Output"/>
+        </operation>
+    </portType>
+    <binding name="SPI_spcFactory_spcImport_spcProcess" type="tns:SPI_spcFactory_spcImport_spcProcess">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="SPI_spcFactory_spcImport_spcProcess">
+            <soap:operation soapAction="document/http://siebel.com/CustomUI:SPI_spcFactory_spcImport_spcProcess"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+        </operation>
+    </binding>
+    <service name="SPI_spcFactory_spcImport_spcProcess">
+        <port name="SPI_spcFactory_spcImport_spcProcess" binding="tns:SPI_spcFactory_spcImport_spcProcess">
+            <soap:address location="http://10.135.108.10/eai_enu/start.swe?SWEExtSource=WebService&amp;SWEExtCmd=Execute&amp;UserName=EAIUSER&amp;Password=EAIUSER"/>
+        </port>
+    </service>
+</definitions>

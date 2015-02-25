@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?><definitions
+ xmlns="http://schemas.xmlsoap.org/wsdl/"
+ xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+ xmlns:xsdLocal1="http://www.siebel.com/xml/SPI%20Interface%20Factory%20IO"
+ targetNamespace="http://siebel.con/CustomUI"
+ xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"
+ xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+ xmlns:tns="http://siebel.con/CustomUI"
+><types
+><xsd:schema
+ elementFormDefault="qualified"
+ attributeFormDefault="unqualified"
+ xmlns:xsdLocal1="http://www.siebel.com/xml/SPI%20Interface%20Factory%20IO"
+ targetNamespace="http://www.siebel.com/xml/SPI%20Interface%20Factory%20IO"
+ xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+><xsd:annotation
+><xsd:documentation
+>Copyright (C) 2001-2004 Siebel Systems, Inc. All rights reserved. Siebel XSD Generation</xsd:documentation
+></xsd:annotation
+><xsd:element
+ name="ListOfSpiInterfaceFactoryIo"
+ type="xsdLocal1:ListOfSpiInterfaceFactoryIo"
+></xsd:element
+><xsd:complexType
+ name="ListOfSpiInterfaceFactoryIoTopElmt"
+><xsd:sequence
+><xsd:element
+ name="ListOfSpiInterfaceFactoryIo"
+ maxOccurs="1"
+ minOccurs="1"
+ type="xsdLocal1:ListOfSpiInterfaceFactoryIo"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="ListOfSpiInterfaceFactoryIo"
+><xsd:sequence
+><xsd:element
+ name="ChannelPartner"
+ maxOccurs="unbounded"
+ minOccurs="0"
+ type="xsdLocal1:ChannelPartner"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="ChannelPartner"
+><xsd:sequence
+><xsd:element
+ name="PreparingFactoryCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMUpdatedTime"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMUpdatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMCreatedTime"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMCreatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ZipCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="DetailAddress"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Locality"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="City"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="State"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Country"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="HOPECustomerCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="HOPEVendorCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMFactoryRowID"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="CurrencyCode"
+ maxOccurs="1"
+ minOccurs="1"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ENUAlias"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MainEmailAddress"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MainFaxNumber"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MainPhoneNumber"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Name"
+ maxOccurs="1"
+ minOccurs="1"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ParentDivisionCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Comments"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="CustomerCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="CHSAlias"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="CHSName"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Status"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="PartnerSubType"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="PartnerType"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="FactoryCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="VendorCode"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="ListOfSpiPartnerServiceProduct"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsdLocal1:ListOfSpiPartnerServiceProduct"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="ListOfSpiPartnerServiceProduct"
+><xsd:sequence
+><xsd:element
+ name="SpiPartnerServiceProduct"
+ maxOccurs="unbounded"
+ minOccurs="0"
+ type="xsdLocal1:SpiPartnerServiceProduct"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+><xsd:complexType
+ name="SpiPartnerServiceProduct"
+><xsd:sequence
+><xsd:element
+ name="UpdatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMUpdated"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMCreatedBy"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="MDMCreated"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Category"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Description"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Status"
+ maxOccurs="1"
+ minOccurs="0"
+ type="xsd:string"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+></xsd:schema
+><xsd:schema
+ elementFormDefault="qualified"
+ attributeFormDefault="unqualified"
+ targetNamespace="http://siebel.con/CustomUI"
+ xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+><xsd:import
+ namespace="http://www.siebel.com/xml/SPI%20Interface%20Factory%20IO"
+></xsd:import
+><xsd:element
+ name="SPI_spcFactory_spcImport_spcProcess_Input"
+><xsd:complexType
+><xsd:sequence
+><xsd:element
+ ref="xsdLocal1:ListOfSpiInterfaceFactoryIo"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+></xsd:element
+><xsd:element
+ name="SPI_spcFactory_spcImport_spcProcess_Output"
+><xsd:complexType
+><xsd:sequence
+><xsd:element
+ name="Error_spcCode"
+ type="xsd:string"
+></xsd:element
+><xsd:element
+ name="Error_spcMessage"
+ type="xsd:string"
+></xsd:element
+></xsd:sequence
+></xsd:complexType
+></xsd:element
+></xsd:schema
+></types
+><message
+ name="SPI_spcFactory_spcImport_spcProcess_Input"
+><part
+ name="SPI_spcFactory_spcImport_spcProcess_Input"
+ element="tns:SPI_spcFactory_spcImport_spcProcess_Input"
+></part
+></message
+><message
+ name="SPI_spcFactory_spcImport_spcProcess_Output"
+><part
+ name="SPI_spcFactory_spcImport_spcProcess_Output"
+ element="tns:SPI_spcFactory_spcImport_spcProcess_Output"
+></part
+></message
+><portType
+ name="SPI_spcFactory_spcImport_spcProcess"
+><operation
+ name="SPI_spcFactory_spcImport_spcProcess"
+><input
+ message="tns:SPI_spcFactory_spcImport_spcProcess_Input"
+></input
+><output
+ message="tns:SPI_spcFactory_spcImport_spcProcess_Output"
+></output
+></operation
+></portType
+><binding
+ name="SPI_spcFactory_spcImport_spcProcess"
+ type="tns:SPI_spcFactory_spcImport_spcProcess"
+><soap:binding
+ transport="http://schemas.xmlsoap.org/soap/http"
+ style="document"
+></soap:binding
+><operation
+ name="SPI_spcFactory_spcImport_spcProcess"
+><soap:operation
+ soapAction="document/http://siebel.con/CustomUI:SPI_spcFactory_spcImport_spcProcess"
+></soap:operation
+><input
+><soap:body
+ use="literal"
+></soap:body
+></input
+><output
+><soap:body
+ use="literal"
+></soap:body
+></output
+></operation
+></binding
+><service
+ name="SPI_spcFactory_spcImport_spcProcess"
+><port
+ binding="tns:SPI_spcFactory_spcImport_spcProcess"
+ name="SPI_spcFactory_spcImport_spcProcess"
+><soap:address
+ location="http://57.73.38.14/eai_enu/start.swe?SWEExtSource=WebService&amp;SWEExtCmd=Execute&amp;UserName=EAIUSER&amp;Password=Haier3385Xy"
+></soap:address
+></port
+></service
+></definitions
+>

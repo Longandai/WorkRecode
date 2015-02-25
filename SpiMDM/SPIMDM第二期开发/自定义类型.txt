@@ -1,0 +1,330 @@
+create or replace type customer_country_type as object
+(
+  -- Author  : XUKEYANG
+  -- Created : 2014/9/12 10:24:58
+  -- Purpose :
+
+  -- Attributes
+  last_upd                   varchar2(20),--更新时间
+  last_upd_by                varchar2(50),--更新人
+  created                    varchar2(20),--创建人
+  created_by                 varchar2(50),--创建时间
+  DELETE_FLAG                varchar2(1),--删除标记
+  remark                     varchar2(2000),--备注
+  Continent                  varchar2(200),--州信息
+  country_code               varchar(20),--国家代码
+  country_name_en            varchar(200),--英文描述
+  country_name_zh            varchar(200)  --中文描述
+
+);
+
+create or replace type customer_country_table as table of customer_country_type;
+
+create or replace type customer_type as object
+(
+  -- Author  : lzl
+  -- Created : 2014/9/12 9:41:18
+  -- Purpose :
+
+  -- Attributes
+  row_id                     varchar2(20),--mdm主键
+  last_upd                   varchar2(20),--更新时间
+  last_upd_by                varchar2(50),--更新人
+  created                    varchar2(20),--创建人
+  created_by                 varchar2(50),--创建时间
+  LOCALITY                   varchar2(50),--区
+  CITY                       varchar2(40),--市
+  STATE                      varchar2(40),--州 省
+  COUNTRY                    varchar2(40),--国家
+  CONTACT_MAIL               varchar2(200),--电子邮箱
+  Fax                        varchar2(20),--传真
+  TEL                        varchar2(40),--电话
+  COMPANY_NAME_EN            varchar2(200),--名称
+  DETAIL_ADDRESS             varchar2(400),--详细地址
+  company_code               varchar2(20),--客户编码
+  SAP_NO                     varchar2(80),--sap编码
+  operate_status             varchar2(20),--操作状态
+  product_list               varchar2(200),
+  customer_countrys       customer_country_table,
+  delete_flag                 varchar2(200),
+  company_type                varchar2(200),
+  partner_Type                  varchar2(200),
+  CURRENCY                    varchar2(80),--20140919货币,
+  zip_code                    varchar2(80),---邮编
+  remark                      varchar2(2000), --beizhu
+  ABBREVIATION                      varchar2(200)--英文简称
+);
+
+create or replace type customer_table as table of  customer_type;
+
+create or replace type Product_Factory_type as object
+(
+  -- Author  : XUKEYANG
+  -- Created : 2014/9/2 9:16:13
+  -- Purpose : 
+  ActiveFlag                  varchar2(10),
+  DeleteFlag                  varchar2(2),--删除标记
+  FactoryCode                 varchar2(20),--工厂编码 
+  MDMCreatedBy                varchar2(20),--创建人 
+  MDMCreatedTime              varchar2(20),--创建时间
+  MDMUpdatedBy                varchar2(20),--更新人 
+  MDMUpdatedTime              varchar2(20),--更新时间
+  OrganizationId              varchar2(40),
+  PriorityFactory             varchar2(2),--主工厂标记
+  ProductCode                 varchar2(30),--成品编码 
+  TypeS                        varchar2(20)
+);
+
+create or replace type Product_Factory_table as table of Product_Factory_type;
+
+create or replace type Product_SALES_Country_TYPE as object
+(
+  -- Author  : XUKEYANG
+  -- Created : 2014/9/2 9:29:47
+  -- Purpose : 
+  
+  -- Attributes
+  ActiveFlag                  varchar2(10),
+  Country                     varchar2(20),--国家
+  DeleteFlag                  varchar2(2),--删除标记  
+  MDMCreatedBy                varchar2(20),--创建人 
+  MDMCreatedTime              varchar2(20),--创建时间
+  MDMUpdatedBy                varchar2(20),--更新人 
+  MDMUpdatedTime              varchar2(20),--更新时间
+  OrganizationCode            varchar2(20),--销售组织编码 
+  OrganizationId              varchar2(40),  
+  ProductCode                 varchar2(30),--成品编码 
+  TypeS                       varchar2(20)
+);
+
+create or replace type Product_SALES_Country_table as table of Product_SALES_Country_TYPE;
+
+create or replace type Product_type as object
+(
+  -- Author  : XUKEYANG
+  -- Created : 2014/9/2 9:36:14
+  -- Purpose : 
+  
+  -- Attributes
+  ActiveFlag                  varchar2(10),
+  BASIC_MODEL                 VARCHAR2(40),--基本型号
+  Brand                       VARCHAR2(20),--品牌 
+  Color                       VARCHAR2(20),--颜色
+  CUSTOMER_MATERIAL_MODEL     VARCHAR2(400),--客户型号 
+  Data_Type                   VARCHAR2(20),
+  DEVELOPMENT_CATEGORY        VARCHAR2(1),--开发类别
+  OLD_MATERIAL_NUMBER         VARCHAR2(80),--工厂型号，海尔型号
+  HRMATHERPRODNO              VARCHAR2(40),--母本成品号
+  DELIST                      VARCHAR2(40),--是否退市，暂时是空值
+  MDMCreatedBy                varchar2(20),--创建人 
+  MDMCreatedTime              varchar2(20),--创建时间
+  MDMProductRowID             varchar2(20),
+  MDMUpdatedBy                varchar2(20),--更新人 
+  MDMUpdatedTime              varchar2(20),--更新时间
+  OrganizationCode            varchar2(20),--销售组织编码 
+  MARKET_TYPE                 VARCHAR2(1),--市场类型
+  PRIMARY_UOM                 VARCHAR2(25),--基本单位
+  DESCRIPTION                 VARCHAR2(255),--产品描述
+  JYT                         VARCHAR2(20),--型号经营体
+  MODEL_MANAGER               VARCHAR2(50),--型号经理
+  NEW_PRODUCT                 VARCHAR2(1),--新品标示
+  EM_DATE_ACTUAL              VARCHAR2(40),--制造终止时间，暂时是空值
+  CATEGORIES_MID              VARCHAR2(60),--PLM产品中类
+  Product_Code                VARCHAR2(60),--产品编码
+  PRODUCT_GROUP               VARCHAR2(50),--产品大类
+  HRBUNO                      VARCHAR2(200),--产品部代码，对应ProductGroupA
+  PRODUCT_GROUP_THREE         VARCHAR2(40),--TSP大类，对应ProductGroupB
+  product_code_base           VARCHAR2(40),--基本视图的9位编码
+  remark                      VARCHAR2(255),--备注
+  SERVICE_MODEL               VARCHAR2(1000),--售后服务型号
+  SERVICE_TYPE                VARCHAR2(2),--服务类型
+  SPECIAL_TECHNICAL_NUMBER    VARCHAR2(1000),--特技单号
+  TypeS                       VARCHAR2(20),
+  TARGET_LINE                 NUMBER,
+  Product_SALES_Countries     Product_SALES_Country_table,
+  Product_Factories           Product_Factory_table,
+  plants                      varchar2(1000),
+  sales                       varchar2(1000)
+);
+create or replace type Product_table as table of  Product_type;
+
+create or replace type plant_product_group_type as object
+(
+  -- Author  : XUKEYANG
+  -- Created : 2014/9/12 10:24:58
+  -- Purpose : 
+  
+  -- Attributes
+  last_upd                   varchar2(20),--更新时间
+  last_upd_by                varchar2(50),--更新人
+  created                    varchar2(20),--创建人
+  created_by                 varchar2(50),--创建时间
+  PRODUCT_GROUP_CODE         varchar2(20),--产品大类
+  DELETE_FLAG                varchar2(1),--删除标记
+  Description                varchar2(100)--SPI字段 MDM不处理
+);
+create or replace type plant_product_group_table as table of plant_product_group_type;
+
+create or replace type plant_type as object
+(
+  -- Author  : XUKEYANG
+  -- Created : 2014/9/12 9:41:18
+  -- Purpose :
+
+  -- Attributes
+  row_id                     varchar2(20),
+  Preparing_Factory_Code     varchar2(20),--SPI字段 MDM不处理
+  last_upd                   varchar2(20),--更新时间
+  last_upd_by                varchar2(50),--更新人
+  created                    varchar2(20),--创建人
+  created_by                 varchar2(50),--创建时间
+  PLANT_POSTCODE             VARCHAR2(100),--邮编
+  PLANT_ADDRESS              VARCHAR2(400),--详细地址
+  PLANT_LOCALITY             VARCHAR2(400),--区
+  PLANT_CITY                 VARCHAR2(400),--市
+  PLANT_STATE                VARCHAR2(400),--州省
+  PLANT_COUNTRY              VARCHAR2(400),--国家
+  CUSTOMER_CODE_HOPE         VARCHAR2(50),--HOPE客户编码
+  VENDOR_CODE_HOPE           VARCHAR2(50),--HOPE供应商编码
+  CURRENCY                   VARCHAR2(50),--货币
+  SHORTNAME_EN               VARCHAR2(400),--英文简称
+  PLANT_EMAIL                 VARCHAR2(400),--邮件
+  PLANT_FAX                   VARCHAR2(100),--传真
+  PLANT_PHONENUMBER           VARCHAR2(100),--电话
+  PLANT_NAME                 VARCHAR2(400),--工厂名称
+  Parent_Division_Code       varchar2(20),--SPI字段 MDM不处理
+  REMARK                     varchar2(255),
+  CUSTOMER_CODE              VARCHAR2(50),--客户编码
+  SHORTNAME_CH               VARCHAR2(400),--中文简称
+  PLANT_NAME_LOCAL           VARCHAR2(400),--工厂名称（当地语言）
+  DELETE_FLAG                VARCHAR2(1),  --删除标记
+  PLANT_CLASSES              VARCHAR2(50),--工厂类别
+  Partner_Type               varchar2(20),--SPI字段 MDM不处理
+  PLANT_CODE                 varchar2(20),
+  VENDOR_CODE                VARCHAR2(50),
+  plant_product_groups       plant_product_group_table,
+  operate_status             varchar2(20),
+  product_list               varchar2(1000),
+  PLANT_CORPORATION_UNIT     varchar2(40)
+);
+create or replace type plant_table as table of  plant_type;
+
+create or replace type MATERIAL_LANGUAGE_TYPE as object
+(
+  -- Author  : XUKEYANG
+  -- Created : 2014/9/9 15:39:49
+  -- Purpose : 
+  
+  -- Attributes
+  MDMCreatedBy                varchar2(20),--创建人 
+  MDMCreatedTime              varchar2(20),--创建时间
+  MDMUpdatedBy                varchar2(20),--更新人 
+  MDMUpdatedTime              varchar2(20),--更新时间
+  LanguageCode                varchar2(20),
+  LanguageName                varchar2(500),
+  reason                      varchar2(500)
+);
+
+create or replace type MATERIAL_LANGUAGE_TABLE as table of MATERIAL_LANGUAGE_TYPE;
+
+create or replace type MATERIAL_PLANT_TYPE as object
+(
+  -- Author  : XUKEYANG
+  -- Created : 2014/9/9 15:43:50
+  -- Purpose : 
+  
+  -- Attributes
+  
+  DeleteFlag                  varchar2(2),--删除标记
+  FactoryCode                 varchar2(20),--工厂编码 
+  LongPeriodicPurchase        VARCHAR2(400),--长周期
+  MDMCreatedBy                varchar2(20),--创建人 
+  MDMCreatedTime              varchar2(20),--创建时间
+  MDMUpdatedBy                varchar2(20),--更新人 
+  MDMUpdatedTime              varchar2(20),--更新时间
+  MaterialType                varchar2(20),
+  PurchaseGroup               VARCHAR2(20),--采购组
+  SPIActive                   varchar2(20),
+  SPIForSearchType            varchar2(20),
+  SPIMasterPlantFlag          VARCHAR2(1),--主工厂标记
+  SPIMinLotQty                NUMBER,     ---订货标准/最小采购量
+  ROUNDING_QUANTITY           NUMBER,     --最小采购包装单位
+  SPIOrgType                  varchar2(20),
+  SPIPartOrgName              varchar2(20),
+  SPIProducingArea            VARCHAR2(400),--产地
+  SpecialMaterialType         VARCHAR2(2)--特殊获取类型
+);
+
+create or replace type MATERIAL_PLANT_TABLE as table of MATERIAL_PLANT_TYPE;
+create or replace type MATERIAL_SALES_COUNTRY_TYPE as object
+(
+  -- Author  : XUKEYANG
+  -- Created : 2014/9/10 10:27:34
+  -- Purpose : 
+  
+  -- Attributes
+  MDMCreatedBy                varchar2(20),--创建人 
+  MDMCreatedTime              varchar2(20),--创建时间
+  MDMUpdatedBy                varchar2(20),--更新人 
+  MDMUpdatedTime              varchar2(20),--更新时间
+  OrganizationCode            varchar2(20),--销售组织编码 
+  DeleteFlag                  varchar2(2),--删除标记 
+  CountryCode                 varchar2(20),--国家
+  Country                     varchar2(20),--国家
+  CompanyCode                 varchar2(20),--贸易公司/大客户公司代码
+  ActiveFlag                  varchar2(10),
+  types                       varchar2(10)
+);
+
+create or replace type MATERIAL_SALES_COUNTRY_TABLE as table of MATERIAL_SALES_COUNTRY_TYPE;
+
+create or replace type Material_TYPE as object
+(
+  -- Author  : XUKEYANG
+  -- Created : 2014/9/10 10:37:54
+  -- Purpose :
+  row_id                      varchar2(20),
+  ActiveFlag                  varchar2(10),
+  Comments                    VARCHAR2(2000),--管理员备注
+  MATERIAL_SPEC               VARCHAR2(4000),--规格型号
+  PLAN_SPECIALITY             VARCHAR2(400),--计划特性
+  IS_FUNCTION_PART            VARCHAR2(2),--是否功能件
+  QUALITY_ENSURE              NUMBER,  --保质期
+  HIGH_NUMBER                 NUMBER,  --高
+  CCI_CODE                    VARCHAR2(20),--报关编号
+  CCI                         VARCHAR2(1),--是否需要商检
+  LEAD_TIME                   NUMBER,--采购提前期
+  LENGTH_NUMBER               NUMBER,--长
+  MIN_SHIP_SIZE               NUMBER,--最小发货量
+  MATERIAL_CODE               VARCHAR2(50),--编码
+  PURCHASE_STAUTS             VARCHAR2(400),--采购状态
+  HRBUNO                      VARCHAR2(20),--产品部代码
+  PRODUCT_GROUP_THREE         VARCHAR2(400),--TSP大类
+  MATERIAL_DESCRITION         VARCHAR2(1000),--备件描述
+  created                     VARCHAR2(50),--创建人
+  CREATED_BY                  VARCHAR2(50),--创建人
+  LAST_UPD                    VARCHAR2(50),--创建人
+  LAST_UPD_BY                 VARCHAR2(50),--创建人
+  DELETE_FLAG                 VARCHAR2(1),--删除标记
+  PART_FAMILY_DIV             VARCHAR2(400),-- 备件族/细分
+  PART_FAMILY                 VARCHAR2(400),--备件族节点
+  MIN_SHIP_UNIT               NUMBER,--最小发货单位
+  NEW_MATERIAL_EXPRESSION     VARCHAR2(2),--新备件标识:1是，2否
+  PHYSICS_PROPERTY            VARCHAR2(32),--物理分类
+  PRODUCT_GROUP               VARCHAR2(40),--产品大类
+  BY_AIR                      VARCHAR2(10),--是否空运
+  PART_TYPE                   VARCHAR2(20),--备件类型
+  PRIMARY_UOM                 VARCHAR2(25),--计量单位
+  OLD_MATERIAL_NUMBER         VARCHAR2(50),--原厂料号
+  MATERIAL_WEIGHT             NUMBER, --重量（千克）
+  WIDTH_NUMBER                NUMBER,--尺寸(高)mm
+  MATERIAL_SALES_Countries    MATERIAL_SALES_Country_table,
+  MATERIAL_PLANTS             MATERIAL_PLANT_table,
+  MATERIAL_LANGUAGES          material_language_table,
+  plants                      varchar2(1000),
+  sales                       varchar2(1000),
+  mtl_type                    varchar2(100)--物料类型，区分物料和附属物料
+
+);
+
+create or replace type Material_TABLE as table of Material_TYPE;

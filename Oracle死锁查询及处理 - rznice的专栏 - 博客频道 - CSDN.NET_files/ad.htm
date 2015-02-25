@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!-- saved from url=(0078)http://blog.csdn.net/common/ad.html?t=12&containerId=ad_commend&frmId=ad_frm_2 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>CSDN Ad</title>
+    <style type="text/css">
+        body { margin:0px; padding:0px;}
+    </style>
+     <script src="jquery.js" type="text/javascript"></script>
+</head>
+<body>
+    <div id="div1"><style type="text/css">
+ul { margin:0px; padding:0 4px 0 0; }
+ul, x:-moz-any-link, x:default { width:90%; }
+ul li { padding:3px 0px;}
+a { font-size:12px; text-decoration:none; color:#006699; }
+a:hover { color:#000; }
+</style>
+
+<ul>
+
+<li><a href="http://blog.csdn.net/kikitamoon/article/details/39288671" target="_blank">* ArcGIS 构建3D动画方法</a></li>
+
+<li><a href="http://blog.csdn.net/qinyuanpei/article/details/39185195" target="_blank">* Unity3D游戏开发之截屏保存精彩瞬间</a></li>
+
+<li><a href="http://blog.csdn.net/harrymeng/article/details/39311981" target="_blank">* 大数据让生活更加糟糕</a></li>
+
+<li><a href="http://blog.csdn.net/pleasecallmewhy/article/details/39321255" target="_blank">* 用Swift开发一个TODO应用</a></li>
+
+<li><a href="http://blog.csdn.net/shulianghan/article/details/39269163" target="_blank">* ActionBar 样式详解 -- 样式 主题 简介 Actionbar 的 icon logo 标题 菜单样式修改</a></li>
+
+<li><a href="http://blog.csdn.net/candycat1992/article/details/39315065" target="_blank">* 使用Unity Render Textures实现画面特效——画面特效中的亮度、饱和度和对比度</a></li>
+</ul></div>
+<script type="text/javascript">
+    window.onload = function () {
+        if (document.domain != 'blog.csdn.net') {
+            document.domain = "csdn.net";
+        }
+        //这种给广告区域赋值的方式，对于有些JS广告不能完美的显示
+        //top.document.getElementById('ad_commend').innerHTML = document.getElementById('div1').innerHTML;
+
+        var h = document.body.offsetHeight + 2;
+        setTimeout(function () {
+            if (h > 800) h = document.getElementById('div1').offsetHeight + 4;
+            try { top.document.getElementById('ad_frm_2').style.height = h + 'px'; }
+            catch (err) { }
+        }, 100);
+    };
+    $(function() {
+        $("#div1 a").click(function() {
+            top._gaq.push(['_trackEvent', 'function', 'onclick', 'blog_articles_tuijianwenzhang']);
+        });
+    });
+</script>
+
+
+</body></html>

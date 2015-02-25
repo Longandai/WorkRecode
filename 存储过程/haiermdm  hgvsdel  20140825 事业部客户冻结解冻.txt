@@ -1,0 +1,1651 @@
+CREATE OR REPLACE PACKAGE BODY HGVSDEL IS
+  PROCEDURE getMaterialDel
+  (
+    in_key_id            IN VARCHAR2,
+    in_operate_status    IN VARCHAR2,
+    in_worklist_id       IN VARCHAR2,
+    in_user_name         in varchar2,
+    out_param_input      out varchar2,
+    out_itab_data        out material_del_table,
+    out_retcode          out varchar2,
+    out_retmsg           out varchar2
+  ) is
+    l_return_batch_id     varchar2(20);
+      CURSOR cur_del_material IS
+          SELECT * FROM hm_del_material t
+           WHERE t.row_id = in_key_id and t.last_version_flag = '2' and t.operate_status = 'CREATE'
+             and t.for_gvs = '1' and t.delete_flag = '0';
+    --cur_del_vendor_row  hm_del_vendor%ROWTYPE;
+    lcl_material_del   material_del_type := material_del_type(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                  NULL,NULL
+                                                                  );
+  begin
+    out_retcode := 'S';
+    out_retmsg  := '操作成功';
+    l_return_batch_id := comm_util.func_new_rowid;
+    out_itab_data := material_del_table();
+    --open cur_del_vendor;
+    for cur_del_material_row in cur_del_material loop
+      lcl_material_del.ROW_ID := cur_del_material_row.row_id;
+      lcl_material_del.MATERIAL_CODE := cur_del_material_row.MATERIAL_CODE;
+      lcl_material_del.DELETE_ALL_FLAG := cur_del_material_row.DELETE_ALL_FLAG;
+      
+      lcl_material_del.CREATED_BY := cur_del_material_row.created_by;
+      lcl_material_del.CREATED := cur_del_material_row.created;
+      lcl_material_del.LAST_UPD_BY := cur_del_material_row.last_upd_by;
+      lcl_material_del.LAST_UPD := cur_del_material_row.last_upd;
+      lcl_material_del.MODIFICATION_NUM := cur_del_material_row.modification_num;
+      lcl_material_del.DELETE_FLAG := cur_del_material_row.delete_flag;
+      lcl_material_del.ACTIVE_FLAG := cur_del_material_row.active_flag;
+      lcl_material_del.REMARK := cur_del_material_row.remark;
+      lcl_material_del.VERSION := cur_del_material_row.version;
+      lcl_material_del.LAST_VERSION_FLAG := cur_del_material_row.last_version_flag;
+      lcl_material_del.OPERATE_STATUS := cur_del_material_row.operate_status;
+      lcl_material_del.LOCK_FLAG := cur_del_material_row.lock_flag;
+      lcl_material_del.RETURN_BATCH_ID := cur_del_material_row.return_batch_id;
+      lcl_material_del.ACTION_BATCH_ID := cur_del_material_row.action_batch_id;
+      lcl_material_del.FOR_GVS := cur_del_material_row.for_gvs;
+      lcl_material_del.AUDIT_FLAG := cur_del_material_row.audit_flag;
+      lcl_material_del.MASTER_TYPE := 'MATERIAL';
+      lcl_material_del.DATA_KEY1 := cur_del_material_row.MATERIAL_CODE;
+      --lcl_material_del.DATA_KEY2 := cur_del_material_row.company_code;
+      --lcl_material_del.DATA_KEY3 := cur_del_material_row.purchase_grp_code;
+      --lcl_vendor_del.DATA_KEY4 := cur_del_vendor_row.distribution_channel;
+      --lcl_vendor_del.DATA_KEY5 := ccur_del_vendor_row.division;
+      lcl_material_del.DATA_KEY7 := l_return_batch_id;    
+      lcl_material_del.DATA_KEY8 := cur_del_material_row.created_by;
+      lcl_material_del.PASS_KEY1 := 'MATERIALDEL';
+      lcl_material_del.PASS_KEY2 := lcl_material_del.ROW_ID;
+      lcl_material_del.PASS_KEY3 := lcl_material_del.ROW_ID;
+      lcl_material_del.PASS_KEY4 := in_worklist_id;
+      
+      out_itab_data.extend;
+      out_itab_data(out_itab_data.count) := lcl_material_del;  
+    end loop;
+        
+  exception
+       when others then
+           out_retcode := 'E';
+           out_retmsg  := sqlerrm;
+  end getMaterialDel;
+   PROCEDURE getVendorDel
+  (
+    in_key_id            IN VARCHAR2,
+    in_operate_status    IN VARCHAR2,
+    in_worklist_id       IN VARCHAR2,
+    in_user_name         in varchar2,
+    out_param_input      out varchar2,
+    out_itab_data        out vendor_del_table,
+    out_retcode          out varchar2,
+    out_retmsg           out varchar2
+  ) is
+    l_return_batch_id     varchar2(20);
+    CURSOR cur_del_vendor IS
+        SELECT * FROM hm_del_vendor t
+         WHERE t.row_id = in_key_id and t.last_version_flag = '2' and t.operate_status = 'CREATE'
+           and t.for_gvs = '1' and t.delete_flag = '0';
+    --cur_del_vendor_row  hm_del_vendor%ROWTYPE;
+    lcl_vendor_del  vendor_del_type1 := vendor_del_type1(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+                                                                  );
+    lcl_operate_status varchar2(50); 
+  begin
+    out_retcode := 'S';
+    out_retmsg  := '操作成功';
+    l_return_batch_id := comm_util.func_new_rowid;
+    out_itab_data := vendor_del_table();
+    --open cur_del_vendor;
+    for cur_del_vendor_row in cur_del_vendor loop
+      lcl_vendor_del.ROW_ID := cur_del_vendor_row.row_id;
+      lcl_vendor_del.VENDOR_CODE := cur_del_vendor_row.VENDOR_CODE;
+      lcl_vendor_del.COMPANY_CODE := cur_del_vendor_row.company_code;
+      lcl_vendor_del.PURCHASE_GRP_CODE := cur_del_vendor_row.purchase_grp_code;
+      lcl_vendor_del.COMPANY_ALL_FLAG := cur_del_vendor_row.company_all_flag;
+      lcl_vendor_del.COMPANY_SPEC_FLAG := cur_del_vendor_row.company_spec_flag;
+      lcl_vendor_del.PURCHASE_ALL_FLAG := cur_del_vendor_row.purchase_all_flag;
+      lcl_vendor_del.PURCHASE_SPEC_FLAG := cur_del_vendor_row.purchase_spec_flag;
+      lcl_vendor_del.FREEZE_REASON := cur_del_vendor_row.freeze_reason;
+      lcl_vendor_del.CREATED_BY := cur_del_vendor_row.created_by;
+      lcl_vendor_del.CREATED := cur_del_vendor_row.created;
+      lcl_vendor_del.LAST_UPD_BY := cur_del_vendor_row.last_upd_by;
+      lcl_vendor_del.LAST_UPD := cur_del_vendor_row.last_upd;
+      lcl_vendor_del.MODIFICATION_NUM := cur_del_vendor_row.modification_num;
+      lcl_vendor_del.DELETE_FLAG := cur_del_vendor_row.delete_flag;
+      lcl_vendor_del.ACTIVE_FLAG := cur_del_vendor_row.active_flag;
+      lcl_vendor_del.REMARK := cur_del_vendor_row.remark;
+      lcl_vendor_del.VERSION := cur_del_vendor_row.version;
+      lcl_vendor_del.LAST_VERSION_FLAG := cur_del_vendor_row.last_version_flag;
+      lcl_vendor_del.OPERATE_STATUS := cur_del_vendor_row.operate_status;
+      lcl_vendor_del.LOCK_FLAG := cur_del_vendor_row.lock_flag;
+      lcl_vendor_del.RETURN_BATCH_ID := cur_del_vendor_row.return_batch_id;
+      lcl_vendor_del.ACTION_BATCH_ID := cur_del_vendor_row.action_batch_id;
+      lcl_vendor_del.FOR_GVS := cur_del_vendor_row.for_gvs;
+      lcl_vendor_del.AUDIT_FLAG := cur_del_vendor_row.audit_flag;
+      lcl_vendor_del.MASTER_TYPE := 'VENDOR';
+      lcl_vendor_del.DATA_KEY1 := cur_del_vendor_row.VENDOR_CODE;
+      lcl_vendor_del.DATA_KEY2 := cur_del_vendor_row.company_code;
+      lcl_vendor_del.DATA_KEY3 := cur_del_vendor_row.purchase_grp_code;
+      --lcl_vendor_del.DATA_KEY4 := cur_del_vendor_row.distribution_channel;
+      --lcl_vendor_del.DATA_KEY5 := ccur_del_vendor_row.division;
+      lcl_vendor_del.DATA_KEY7 := l_return_batch_id;    
+      lcl_vendor_del.DATA_KEY8 := cur_del_vendor_row.created_by;
+      lcl_vendor_del.PASS_KEY1 := 'VENDORDEL';
+      lcl_vendor_del.PASS_KEY2 := lcl_vendor_del.ROW_ID;
+      lcl_vendor_del.PASS_KEY3 := lcl_vendor_del.ROW_ID;
+      lcl_vendor_del.PASS_KEY4 := in_worklist_id;
+      
+      out_itab_data.extend;
+      out_itab_data(out_itab_data.count) := lcl_vendor_del;  
+      for cur_row in (select operate_status,row_id,for_gvs from hm_vendors where vendor_code = cur_del_vendor_row.VENDOR_CODE)
+      loop  
+        if cur_row.operate_status = 'CREATE' or cur_row.for_gvs is null or cur_row.for_gvs <> '1' then
+          out_retcode := 'Y';--不用提交到SAP，在BPEL新建分支单独处理
+          return;
+        end if;
+        if lcl_vendor_del.COMPANY_CODE is not null then
+          for cur_id in (select a.operate_status,a.for_gvs from hm_vendor_company_data a where a.company_code = lcl_vendor_del.COMPANY_CODE and vendor_id = cur_row.row_id)
+          loop
+            if cur_id.operate_status = 'CREATE' or cur_id.for_gvs is null or cur_id.for_gvs <> '1' then
+              out_retcode := 'Y';--不用提交到SAP，在BPEL新建分支单独处理
+              return;
+            end if;
+          end loop;  
+        end if;
+        if lcl_vendor_del.PURCHASE_GRP_CODE is not null then
+          for cur_id in (select a.operate_status,a.for_gvs from hm_vendor_pur_data a where a.purchase_grp_code= lcl_vendor_del.PURCHASE_GRP_CODE and vendor_id = cur_row.row_id)
+          loop
+            if cur_id.operate_status = 'CREATE' or cur_id.for_gvs is null or cur_id.for_gvs <> '1'  then
+              out_retcode := 'Y';--不用提交到SAP，在BPEL新建分支单独处理
+              return;
+            end if;
+          end loop;  
+        end if;
+      end loop;
+    end loop;
+        
+  exception
+       when others then
+           out_retcode := 'E';
+           out_retmsg  := sqlerrm;
+  end getVendorDel;
+  PROCEDURE getCustomerDel
+  (
+    in_key_id            IN VARCHAR2,
+    in_operate_status    IN VARCHAR2,
+    in_worklist_id       IN VARCHAR2,
+    in_user_name         in varchar2,
+    out_param_input      out varchar2,
+    out_itab_data        out customer_del_table,
+    out_retcode          out varchar2,
+    out_retmsg           out varchar2
+  ) IS
+  l_return_batch_id     varchar2(20);
+  CURSOR cur_del_customer IS
+      SELECT * FROM hm_del_customer t
+       WHERE t.row_id = in_key_id and t.last_version_flag = '2' and t.operate_status = 'CREATE'
+           and t.for_gvs = '1' and t.delete_flag = '0';
+  cur_del_customer_row  hm_del_customer%ROWTYPE;
+  lcl_customer_del_type  customer_del_type := customer_del_type(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                NULL,NULL,NULL,NULL,NULL
+                                                                );
+  lcl_operate_status varchar2(20);                                                              
+  begin
+    out_retcode := 'S';
+    out_retmsg  := '操作成功';
+    l_return_batch_id := comm_util.func_new_rowid;
+    out_itab_data := customer_del_table();
+    open cur_del_customer;
+    loop fetch cur_del_customer into cur_del_customer_row;
+        exit when cur_del_customer%NOTFOUND;
+        lcl_customer_del_type.ROW_ID := cur_del_customer_row.row_id;
+        lcl_customer_del_type.CUSTOMER_NUMBER := cur_del_customer_row.customer_number;
+        lcl_customer_del_type.COMPANY_CODE := cur_del_customer_row.company_code;
+        lcl_customer_del_type.SALES_GROUP := cur_del_customer_row.sales_group;
+        lcl_customer_del_type.DISTRIBUTION_CHANNEL := cur_del_customer_row.distribution_channel;
+        lcl_customer_del_type.DIVISION := cur_del_customer_row.division;
+        lcl_customer_del_type.COMPANY_ALL_FLAG := cur_del_customer_row.company_all_flag;
+        lcl_customer_del_type.COMPANY_SPEC_FLAG := cur_del_customer_row.company_spec_flag;
+        lcl_customer_del_type.SALES_ALL_FLAG := cur_del_customer_row.sales_all_flag;
+        lcl_customer_del_type.SALES_SPEC_FLAG := cur_del_customer_row.sales_spec_flag;
+        lcl_customer_del_type.SALES_ALL_REASON_OR := cur_del_customer_row.sales_all_reason_or;
+        lcl_customer_del_type.SALES_SPEC_REASON_OR := cur_del_customer_row.sales_spec_reason_or;
+        lcl_customer_del_type.SALES_ALL_REASON_GR := cur_del_customer_row.sales_all_reason_gr;
+        lcl_customer_del_type.SALES_SPEC_REASON_GR := cur_del_customer_row.sales_spec_reason_gr;
+        lcl_customer_del_type.SALES_ALL_REASON_BL := cur_del_customer_row.sales_all_reason_bl;
+        lcl_customer_del_type.SALES_SPEC_REASON_BL := cur_del_customer_row.sales_spec_reason_bl;
+        lcl_customer_del_type.CREATED_BY := cur_del_customer_row.created_by;
+        lcl_customer_del_type.CREATED := cur_del_customer_row.created;
+        lcl_customer_del_type.LAST_UPD_BY := cur_del_customer_row.last_upd_by;
+        lcl_customer_del_type.LAST_UPD := cur_del_customer_row.last_upd;
+        lcl_customer_del_type.MODIFICATION_NUM := cur_del_customer_row.modification_num;
+        lcl_customer_del_type.DELETE_FLAG := cur_del_customer_row.delete_flag;
+        lcl_customer_del_type.ACTIVE_FLAG := cur_del_customer_row.active_flag;
+        lcl_customer_del_type.REMARK := cur_del_customer_row.remark;
+        lcl_customer_del_type.VERSION := cur_del_customer_row.version;
+        lcl_customer_del_type.LAST_VERSION_FLAG := cur_del_customer_row.last_version_flag;
+        lcl_customer_del_type.OPERATE_STATUS := cur_del_customer_row.operate_status;
+        lcl_customer_del_type.LOCK_FLAG := cur_del_customer_row.lock_flag;
+        lcl_customer_del_type.RETURN_BATCH_ID := cur_del_customer_row.return_batch_id;
+        lcl_customer_del_type.ACTION_BATCH_ID := cur_del_customer_row.action_batch_id;
+        lcl_customer_del_type.FOR_GVS := cur_del_customer_row.for_gvs;
+        lcl_customer_del_type.AUDIT_FLAG := cur_del_customer_row.audit_flag;
+        lcl_customer_del_type.MASTER_TYPE := 'CUSTOMER';
+        lcl_customer_del_type.DATA_KEY1 := cur_del_customer_row.customer_number;
+        lcl_customer_del_type.DATA_KEY2 := cur_del_customer_row.company_code;
+        lcl_customer_del_type.DATA_KEY3 := cur_del_customer_row.sales_group;
+        lcl_customer_del_type.DATA_KEY4 := cur_del_customer_row.distribution_channel;
+        lcl_customer_del_type.DATA_KEY5 := cur_del_customer_row.division;
+        if cur_del_customer_row.action_batch_id is not null then
+          l_return_batch_id := cur_del_customer_row.action_batch_id;
+        end if;
+        lcl_customer_del_type.DATA_KEY7 := l_return_batch_id;    
+        lcl_customer_del_type.DATA_KEY8 := cur_del_customer_row.created_by;
+        lcl_customer_del_type.PASS_KEY1 := 'CUSTOMERDEL';
+        lcl_customer_del_type.PASS_KEY2 := lcl_customer_del_type.ROW_ID;
+        lcl_customer_del_type.PASS_KEY3 := lcl_customer_del_type.ROW_ID;
+        lcl_customer_del_type.PASS_KEY4 := in_worklist_id;
+        
+        out_itab_data.extend;
+        out_itab_data(out_itab_data.count) := lcl_customer_del_type;
+        select operate_status into lcl_operate_status from hm_customers where customer_number = cur_del_customer_row.customer_number;
+        if lcl_operate_status = 'CREATE' then
+          out_retcode := 'Y';--不用提交到SAP，在BPEL新建分支单独处理
+        end if;
+    end loop;
+    close cur_del_customer;
+    exception
+       when others then
+           out_retcode := 'E';
+           out_retmsg  := sqlerrm;
+  end ;
+  PROCEDURE setDelSapReturn
+	(
+		sapins  IN sap_return_table2,
+    return_batch_id out varchar2,
+		retcode OUT VARCHAR2,
+    retmsg  OUT VARCHAR2
+	) IS
+ 		v_sapreturn hm_sap_return%ROWTYPE;
+		v_sapins    sap_return_type2;
+    S_COUNT     INTEGER;
+    lcl_temp    varchar2(100);
+    lcl_retMsg varchar2(2000); 
+   -- t_operate     sap_return_table2 := sap_return_table2();
+      
+   -- find_flag   char(1);
+   -- commit_flag char(1);
+
+	BEGIN
+  
+		retcode := 'E';
+	  retmsg  := '解析SAP返回数据，处理异常';
+    --commit_flag := '0';
+    s_count := 0;
+    --begin
+    
+    for i in 1..sapins.count
+    loop
+      v_sapins := sapins(i);
+           
+      v_sapreturn.pass_key1      := v_sapins.pass_key1;
+      v_sapreturn.pass_key2      := v_sapins.pass_key2;
+      v_sapreturn.pass_key3      := v_sapins.pass_key3;
+      v_sapreturn.pass_key4      := v_sapins.pass_key4;
+      v_sapreturn.message_type   := v_sapins.message_type;
+      v_sapreturn.message_id     := v_sapins.message_id;
+      v_sapreturn.message_number := v_sapins.message_number;
+      v_sapreturn.message_v1     := v_sapins.message_v1;
+      v_sapreturn.message_v2     := v_sapins.message_v2;
+      v_sapreturn.message_v3     := v_sapins.message_v3;
+      v_sapreturn.message_v4     := v_sapins.message_v4;
+      v_sapreturn.message        := v_sapins.message;
+      --xuky 20110121
+      lcl_retMsg := v_sapins.message;
+      v_sapreturn.data_row       := v_sapins.data_row;
+      v_sapreturn.data_field     := v_sapins.data_field;
+      v_sapreturn.data_system    := v_sapins.data_system;
+      v_sapreturn.data_key1      := v_sapins.data_key1;
+      v_sapreturn.data_key2      := v_sapins.data_key2;
+      v_sapreturn.data_key3      := v_sapins.data_key3;
+      v_sapreturn.data_key4      := v_sapins.data_key4;
+      v_sapreturn.data_key5      := v_sapins.data_key5;
+      v_sapreturn.data_key6      := v_sapins.data_key6;
+      v_sapreturn.data_key7      := v_sapins.data_key7;
+      v_sapreturn.data_key8      := v_sapins.data_key8;
+      v_sapreturn.operate_status := v_sapins.OPERATE_STATUS;
+      v_sapreturn.master_type    := v_sapins.MASTER_TYPE;
+        
+      v_sapreturn.row_id         := comm_util.func_new_rowid();
+      v_sapreturn.created_by     := v_sapins.data_key8;
+      v_sapreturn.created        := sysdate;
+      v_sapreturn.last_upd_by    := v_sapins.data_key8;
+      v_sapreturn.last_upd       := sysdate;
+        
+      INSERT INTO hm_sap_return
+      VALUES v_sapreturn;
+        
+      IF return_batch_id is null and v_sapins.data_key7 is not null then
+        return_batch_id := v_sapins.data_key7;
+      end if;
+
+      if v_sapins.message_type is not null then
+          
+        if not ( v_sapins.message_type = 'S' OR v_sapins.message_type = 'W' OR v_sapins.message_type = 'I' ) then
+            v_sapins.message_type := 'E';
+        end if;
+        
+        if v_sapins.MASTER_TYPE = 'CUSTOMER' and v_sapins.MESSAGE_V4 = 'X,,X,' then
+           --表明是冻结操作，需作记录
+          insert into HM_DEL_CUSTOMER_INFO_LOG(row_id,Customer_Number,SYSTEM,RETCODE,MESSAGE)
+            values (comm_util.FUNC_NEW_ROWID,v_sapins.DATA_KEY1,'SAP',v_sapins.MESSAGE_TYPE,v_sapins.MESSAGE);
+        end if;
+        
+        if v_sapins.MESSAGE_TYPE = 'S' THEN
+            s_count := s_count + 1;
+            prc_version_update( v_sapins,
+                                retcode,
+                                retmsg  
+                               );  
+            if retcode = 'E' then
+                retcode := 'E';
+                return;
+            end if;
+        else
+          if v_sapins.MASTER_TYPE = 'CUSTOMER' then
+            lcl_temp := 'hm_del_customer';
+          elsif v_sapins.MASTER_TYPE = 'VENDOR' then
+            lcl_temp := 'hm_del_vendor';
+          elsif v_sapins.MASTER_TYPE = 'MATERIAL' then
+            lcl_temp := 'hm_del_material';
+          end if;
+            prc_version_update_status( v_sapins.DATA_KEY8,
+                                       lcl_temp,
+                                       v_sapins.pass_key1,
+                                       '',
+                                       '',
+                                       '',
+                                       '',
+                                       return_batch_id,
+                                       retcode,
+                                       retmsg
+                                     );
+            if retcode = 'E' then
+                retcode := 'RE';
+                return;
+            end if;      
+        end if;
+      end if;    
+
+    end loop;    
+    if s_count = sapins.count then
+        retcode := 'S';
+        retmsg  := 'setSapReturn: SAP操作成功!'||S_COUNT||'/'||sapins.count;
+    elsif S_COUNT = 0 THEN 
+			retcode := 'E';
+      --retmsg  := 'setSapReturn: SAP操作失败,工作流需重新启动!'||S_COUNT||'/'||sapins.count;
+    elsif s_count< sapins.count then
+      retcode := 'R';
+      --retmsg  := 'setSapReturn: SAP操作部分成功,工作流需重新启动!'||S_COUNT||'/'||sapins.count;       
+    end if;  
+    if  retcode <> 'S' then
+      retcode:='E';
+      retmsg := lcl_retMsg;
+    end if;  
+	EXCEPTION
+		WHEN OTHERS THEN
+		  retcode := 'E';
+      retmsg  := 'setSapReturn: 解析过程处理异常!'||sqlerrm;
+  end setDelSapReturn;
+  
+  
+  
+   procedure prc_version_update_status( in_user_name in varchar2,
+                                       in_table_name in varchar2,
+                                       in_row_id    in varchar2,
+                                       in_last_version_flag in varchar2,
+                                       in_operate_status in varchar2,
+                                       in_lock_flag in varchar2,
+                                       in_version_step in number,
+                                       in_return_batch_id in varchar2,
+                                       retcode out varchar2,
+                                       retmsg out varchar2
+                                       )
+                                     
+  is
+    str_update_sql varchar2(1000);
+    
+  begin
+         
+   str_update_sql := ' update '||in_table_name||' set '||
+                      ' last_version_flag = DECODE(:in_last_version_flag, NULL,last_version_flag,:in_last_version_flag ), '||
+                      ' operate_status = decode(:in_operate_status, null, operate_status, :in_operate_status), '||
+                      ' lock_flag = decode(:in_lock_flag, null, lock_flag, :in_lock_flag), '||
+                      ' return_batch_id = decode(:in_return_batch_id, null, return_batch_id, :in_return_batch_id), '||
+                      ' version = decode(sign(:in_version_step), 1, :in_version_step + version, version), '||
+                      ' last_upd_by = decode(:in_user_name, null, last_upd_by, :in_user_name), '||
+                      ' last_upd = sysdate, '||
+                      ' modification_num = modification_num + 1 '||
+                      ' where row_id = :in_row_id ';
+    
+    execute immediate str_update_sql 
+    USING in_last_version_flag,in_last_version_flag, 
+          in_operate_status, in_operate_status, 
+          in_lock_flag, in_lock_flag, 
+          in_return_batch_id, in_return_batch_id, 
+          in_version_step, in_version_step, 
+          in_user_name, in_user_name,
+          in_row_id;
+          
+    retcode := 'S';
+    retmsg  := 'prc_version_update_status:数据库表:'||in_table_name||'更新成功 '||sql%rowcount||'条!';
+
+	EXCEPTION
+		WHEN OTHERS THEN
+			ROLLBACK;
+      retcode := 'E';
+      retmsg  := 'prc_version_update_status:数据库表:'||in_table_name||'更新失败!'||sqlerrm;
+      
+  end prc_version_update_status; 
+  
+  
+  
+  procedure prc_version_publish_data( in_table_name in varchar2,
+                                      in_row_id in varchar2,
+                                      retcode out varchar2,
+                                      retmsg out varchar2
+                                     )
+  is
+    str_delete_sql varchar2(255);
+    str_insert_sql varchar2(255);
+    v_rowcount int;
+  begin
+    
+/*  str_delete_sql := 'delete from '||in_table_name||'_his where row_id = '''||in_row_id||'''';
+    execute immediate str_delete_sql;
+    v_rowcount := v_rowcount + sql%rowcount;
+    
+    str_insert_sql := 'insert into '||in_table_name||'_his select * from '||in_table_name||' where row_id = '''||in_row_id||'''';
+    execute immediate str_insert_sql;
+    v_rowcount := v_rowcount + sql%rowcount;
+*/         
+    str_delete_sql := 'delete from '||in_table_name||'_pub where row_id = :in_row_id';
+    execute immediate str_delete_sql USING in_row_id;
+    v_rowcount := v_rowcount + sql%rowcount;
+       
+    str_insert_sql := 'insert into '||in_table_name||'_pub select * from '||in_table_name||' where row_id = :in_row_id';
+    execute immediate str_insert_sql USING in_row_id;
+    v_rowcount := v_rowcount + sql%rowcount;
+         
+    retcode := 'S';
+    --retmsg  := 'prc_version_publish_data:数据库表'||in_table_name||' 操作成功 '||v_rowcount||'条!';
+
+	EXCEPTION
+		WHEN OTHERS THEN
+			ROLLBACK;
+      retcode := 'E';
+      retmsg  := 'prc_version_publish_data:数据库表'||in_table_name||' 操作失败!'||sqlerrm;
+      
+  end prc_version_publish_data;           
+  
+ 
+  
+ 
+ procedure prc_split_str(
+                           in_message in varchar,
+                           out_company_all_flag out varchar2,
+                           out_company_spec_flag out varchar2,
+                           out_sales_all_flag  out varchar2,
+                           out_sales_spec_flag out varchar2
+                        ) is
+ lcl_loc_pre integer;
+ lcl_loc_next integer;
+ begin
+         lcl_loc_pre := instr(in_message,',',1,1);
+         if lcl_loc_pre = 1 then
+             out_company_all_flag := '';
+         else
+             out_company_all_flag := 'X';
+         end if;
+         lcl_loc_next := instr(in_message,',',lcl_loc_pre+1,1);
+         
+         if lcl_loc_next = lcl_loc_pre+1 then
+             out_company_spec_flag := '';
+         else
+             out_company_spec_flag := 'X';
+         end if;
+         lcl_loc_pre := lcl_loc_next;
+         lcl_loc_next := instr(in_message,',',lcl_loc_pre+1,1);
+         if lcl_loc_next = lcl_loc_pre+1 then
+             out_sales_all_flag := '';
+         else
+             out_sales_all_flag := 'X';
+         end if;
+         if lcl_loc_next = length(in_message) then
+             out_sales_spec_flag := '';
+         end if;
+         if substr(in_message,lcl_loc_next+1,1) = 'X' then
+             out_sales_spec_flag := 'X';
+         end if;
+         
+ end;
+ 
+  procedure prc_version_update(
+                                in_sap_return in sap_return_type2,
+                                retcode  out  varchar2,
+                                retmsg   out  varchar2           
+                             ) IS
+  lcl_delete_flag varchar2(1);
+  lcl_customer_id varchar2(20);   
+  lcl_vendor_id varchar2(20);   
+  lcl_material_id varchar2(20);                        
+  lcl_customer_company_id varchar2(20);    
+  lcl_vendor_company_id varchar2(20);                        
+  lcl_customer_sales_id varchar2(20);    
+  lcl_vendor_purchase_id varchar2(20);    
+  lcl_company_all_flag varchar2(1);
+  lcl_company_spec_flag varchar2(1);
+  lcl_sales_all_flag varchar2(1);
+  lcl_sales_spec_flag varchar2(1);  
+  lcl_purchase_all_flag varchar2(1);
+  lcl_purchase_spec_flag varchar2(1); 
+  
+  lcl_material_flag varchar2(1);   
+  --added by xuky 20081215 客户和供应商冻结解冻有新的逻辑修改
+  lcl_flag1 varchar2(1) := '0';
+  lcl_flag2 varchar2(1) := '0';                
+  begin
+    lcl_delete_flag := '0';
+    if in_sap_return.MASTER_TYPE = 'CUSTOMER' THEN  
+    --对于客户主数据 in_sap_return.DATA_KEY1:客户号, in_sap_return.DATA_KEY2:公司编码，in_sap_return.DATA_KEY3：销售区域
+    ---------------  in_sap_return.DATA_KEY4:分销渠道 in_sap_return.DATA_KEY5:产品组 in_sap_return.DATA_KEY8用户
+       select row_id into lcl_customer_id from hm_customers where customer_number = in_sap_return.DATA_KEY1;
+            --解析message_v4（*,*,*,*）获取冻结标记
+      prc_split_str(in_sap_return.message_v4,lcl_company_all_flag,
+          lcl_company_spec_flag,lcl_sales_all_flag,lcl_sales_spec_flag);
+      --解析结束
+       if in_sap_return.DATA_KEY1 is not null and in_sap_return.DATA_KEY2 is null and in_sap_return.DATA_KEY3 is null then
+          if lcl_company_all_flag = 'X' and lcl_sales_all_flag = 'X' then
+              lcl_delete_flag := '1';
+          elsif lcl_company_all_flag = 'X' and lcl_sales_all_flag is null then
+              lcl_flag1 := '1';
+          elsif lcl_company_all_flag is null  and lcl_sales_all_flag = 'X' then  
+              lcl_flag2 := '1';
+          else  
+              lcl_delete_flag := '0';    
+          end if; 
+                   
+          comm_util.copy_table_line('HM_CUSTOMERS','','_HIS',lcl_customer_id,retcode,retmsg);                
+          --insert into hm_customers_his --备份到历史表
+          --  select * from hm_customers t where t.customer_number = in_company_code; 
+          
+          update hm_customers set last_upd_by = in_sap_return.DATA_KEY8,--更新客户表
+              last_upd = sysdate, delete_flag = lcl_delete_flag,return_batch_id = in_sap_return.data_key7,
+              DELETE_FLAG_SALES_ORG = lcl_flag2,DELETE_FLAG_COMPANY = lcl_flag1
+            where row_id = lcl_customer_id;   
+            
+          comm_util.replace_table_line('HM_CUSTOMERS','','_PUB',lcl_customer_id,retcode,retmsg);
+      
+      end if;
+      
+      if in_sap_return.DATA_KEY1 is not null and in_sap_return.DATA_KEY2 is not null and in_sap_return.DATA_KEY3 is null then 
+          if lcl_company_spec_flag = 'X' then
+              lcl_delete_flag := '1';
+          else
+              lcl_delete_flag := '0'; 
+          end if;
+          
+          select row_id into lcl_customer_company_id from hm_cust_company_data where company_code = in_sap_return.DATA_KEY2 and customer_id = lcl_customer_id;
+          
+          comm_util.copy_table_line('HM_CUST_COMPANY_DATA','','_HIS',lcl_customer_company_id,retcode,retmsg);                
+          --insert into HM_CUST_COMPANY_DATA_his
+          --  select * from HM_CUST_COMPANY_DATA where customer_id = lcl_customer_id and company_code = in_company_code;
+          
+          update HM_CUST_COMPANY_DATA set last_upd_by = in_sap_return.DATA_KEY8,--更新客户表
+              last_upd = sysdate, delete_flag = lcl_delete_flag,return_batch_id = in_sap_return.DATA_KEY7
+            where ROW_ID = lcl_customer_company_id;
+            --customer_id = lcl_customer_id and company_code = in_company_code;  
+            
+          comm_util.replace_table_line('HM_CUST_COMPANY_DATA','','_PUB',lcl_customer_company_id,retcode,retmsg);
+            
+      end if;
+      
+      if in_sap_return.DATA_KEY1 is not null and in_sap_return.DATA_KEY2 is null and 
+               (in_sap_return.DATA_KEY3 is not null and in_sap_return.DATA_KEY4 is not null and in_sap_return.DATA_KEY5 is not null) then 
+          if lcl_sales_spec_flag = 'X' then
+              lcl_delete_flag := '1';
+          else
+              lcl_delete_flag := '0'; 
+          end if;
+
+          select row_id into lcl_customer_sales_id from Hm_Customer_Sales_Data
+            where sales_group = in_sap_return.DATA_KEY3 
+              and distribution_channel =in_sap_return.DATA_KEY4 
+              and division = in_sap_return.DATA_KEY5 and customer_id = lcl_customer_id;
+          
+          comm_util.copy_table_line('HM_CUSTOMER_SALES_DATA','','_HIS',lcl_customer_sales_id,retcode,retmsg);                
+          --select row_id into lcl_customer_id from hm_customers where customer_number = in_customer_code;
+          --insert into hm_customer_sales_data_his
+          --  select * from hm_customer_sales_data where customer_id = lcl_customer_id and sales_group = in_sales_group 
+          --    and distribution_channel =in_distribution_channel 
+          --    and division = in_division;
+          
+          update hm_customer_sales_data set last_upd_by = in_sap_return.DATA_KEY8,--更新客户表
+              last_upd = sysdate, delete_flag = lcl_delete_flag,return_batch_id = in_sap_return.DATA_KEY7
+            where row_id = lcl_customer_sales_id;  
+            
+          comm_util.replace_table_line('HM_CUSTOMER_SALES_DATA','','_PUB',lcl_customer_sales_id,retcode,retmsg);                
+            
+      end if;
+      
+      prc_version_update_status(in_user_name => in_sap_return.DATA_KEY8,in_table_name => 'hm_del_customer'
+                                ,in_row_id => in_sap_return.PASS_KEY2,in_last_version_flag => '1'
+                                ,in_operate_status => 'NVL',in_lock_flag => '0'
+                                ,in_version_step => 0.1,in_return_batch_id => in_sap_return.DATA_KEY7
+                                ,retcode => retcode,retmsg => retmsg);
+      if retcode = 'E' then 
+          retcode := 'RE'; 
+          return; 
+      end if; 
+                               
+/*      prc_version_publish_data('hm_del_customer',in_row_id,retcode,retmsg);
+      if retcode = 'E' then 
+          retcode := 'RE'; 
+          return; 
+      end if; 
+*/ 
+    elsif in_sap_return.MASTER_TYPE = 'VENDOR' THEN  
+     --对于供应商主数据 in_sap_return.DATA_KEY1:供应商编码, in_sap_return.DATA_KEY2:公司编码，in_sap_return.DATA_KEY3：采购组织 in_sap_return.DATA_KEY8 ：用户名
+       select row_id into lcl_vendor_id from hm_vendors where VENDOR_CODE = in_sap_return.DATA_KEY1;
+            --解析message_v4（*,*,*,*）获取冻结标记
+      prc_split_str(in_sap_return.message_v4,lcl_company_all_flag,
+          lcl_company_spec_flag,lcl_purchase_all_flag,lcl_purchase_spec_flag);
+      --解析结束
+       if in_sap_return.DATA_KEY1 is not null and in_sap_return.DATA_KEY2 is null and in_sap_return.DATA_KEY3 is null then
+          if lcl_company_all_flag = 'X' and lcl_purchase_all_flag = 'X' then
+              lcl_delete_flag := '1';
+          elsif lcl_company_all_flag = 'X' and lcl_purchase_all_flag is null then
+              lcl_flag1 := '1';
+          elsif lcl_company_all_flag is null and lcl_purchase_all_flag = 'X' then  
+              lcl_flag2 := '1';
+          else  
+              lcl_delete_flag := '0';    
+          end if; 
+                   
+          comm_util.copy_table_line('HM_VENDORS','','_HIS',lcl_vendor_id,retcode,retmsg);                
+          --insert into hm_customers_his --备份到历史表
+          --  select * from hm_customers t where t.customer_number = in_company_code; 
+          
+          update hm_vendors set last_upd_by = in_sap_return.DATA_KEY8,--更新客户表
+              last_upd = sysdate, delete_flag = lcl_delete_flag,return_batch_id = in_sap_return.data_key7,
+              DELETE_FLAG_COMPANY = lcl_flag1,DELETE_FLAG_PUR_ORG = lcl_flag2
+            where row_id = lcl_vendor_id;   
+            
+          comm_util.replace_table_line('HM_VENDORS','','_PUB',lcl_vendor_id,retcode,retmsg);
+      
+      end if;
+      
+      if in_sap_return.DATA_KEY1 is not null and in_sap_return.DATA_KEY2 is not null  then 
+          if lcl_company_spec_flag = 'X' then
+              lcl_delete_flag := '1';
+          else
+              lcl_delete_flag := '0'; 
+          end if;
+          
+          select row_id into lcl_vendor_company_id from hm_vendor_company_data where company_code = in_sap_return.DATA_KEY2 and VENDOR_ID = lcl_vendor_id;
+          
+          comm_util.copy_table_line('HM_VENDOR_COMPANY_DATA','','_HIS',lcl_vendor_company_id,retcode,retmsg);                
+          --insert into HM_CUST_COMPANY_DATA_his
+          --  select * from HM_CUST_COMPANY_DATA where customer_id = lcl_customer_id and company_code = in_company_code;
+          
+          update HM_VENDOR_COMPANY_DATA set last_upd_by = in_sap_return.DATA_KEY8,--更新客户表
+              last_upd = sysdate, delete_flag = lcl_delete_flag,return_batch_id = in_sap_return.DATA_KEY7
+            where ROW_ID = lcl_vendor_company_id;
+            --customer_id = lcl_customer_id and company_code = in_company_code;  
+          --commit;  
+          comm_util.replace_table_line('HM_VENDOR_COMPANY_DATA','','_PUB',lcl_vendor_company_id,retcode,retmsg);
+          --commit; 
+      end if;
+      
+      if in_sap_return.DATA_KEY1 is not null  and 
+               in_sap_return.DATA_KEY3 is not null then 
+          if lcl_purchase_spec_flag = 'X' then
+              lcl_delete_flag := '1';
+          else
+              lcl_delete_flag := '0'; 
+          end if;
+
+          select row_id into lcl_vendor_purchase_id from Hm_vendor_pur_Data
+            where PURCHASE_GRP_CODE = in_sap_return.DATA_KEY3 and VENDOR_ID = lcl_vendor_id;
+          
+          comm_util.copy_table_line('HM_VENDOR_PUR_DATA','','_HIS',lcl_vendor_purchase_id,retcode,retmsg);                
+          --select row_id into lcl_customer_id from hm_customers where customer_number = in_customer_code;
+          --insert into hm_customer_sales_data_his
+          --  select * from hm_customer_sales_data where customer_id = lcl_customer_id and sales_group = in_sales_group 
+          --    and distribution_channel =in_distribution_channel 
+          --    and division = in_division;
+          
+          update HM_VENDOR_PUR_DATA set last_upd_by = in_sap_return.DATA_KEY8,--更新客户表
+              last_upd = sysdate, delete_flag = lcl_delete_flag,return_batch_id = in_sap_return.DATA_KEY7
+            where row_id = lcl_vendor_purchase_id;  
+            
+          comm_util.replace_table_line('HM_VENDOR_PUR_DATA','','_PUB',lcl_vendor_purchase_id,retcode,retmsg);                
+            
+      end if;
+      
+      prc_version_update_status(in_user_name => in_sap_return.DATA_KEY8,in_table_name => 'HM_DEL_VENDOR'
+                                ,in_row_id => in_sap_return.PASS_KEY2,in_last_version_flag => '1'
+                                ,in_operate_status => 'NVL',in_lock_flag => '0'
+                                ,in_version_step => 0.1,in_return_batch_id => in_sap_return.DATA_KEY7
+                                ,retcode => retcode,retmsg => retmsg);
+      if retcode = 'E' then 
+          retcode := 'RE'; 
+          return; 
+      end if;   
+    elsif in_sap_return.MASTER_TYPE = 'MATERIAL' THEN 
+    --对于物料主数据 in_sap_return.DATA_KEY1:物料编码,  in_sap_return.DATA_KEY8 ：用户名 
+      select row_id into lcl_material_id from hm_mtl_general where MATERIAL_CODE = in_sap_return.DATA_KEY1;
+      lcl_material_flag :=   in_sap_return.MESSAGE_V4;   
+       
+      if lcl_material_flag = 'X'  then
+          lcl_delete_flag := '1';
+      else
+          lcl_delete_flag := '0';    
+      end if; 
+               
+      comm_util.copy_table_line('HM_MTL_GENERAL','','_HIS',lcl_material_id,retcode,retmsg);                
+      --insert into hm_customers_his --备份到历史表
+      --  select * from hm_customers t where t.customer_number = in_company_code; 
+      
+      update hm_mtl_general set last_upd_by = in_sap_return.DATA_KEY8,--更新客户表
+          last_upd = sysdate, delete_flag = lcl_delete_flag,return_batch_id = in_sap_return.data_key7
+        where row_id = lcl_material_id;   
+        
+      comm_util.replace_table_line('HM_MTL_GENERAL','','_PUB',lcl_material_id,retcode,retmsg);
+      
+     
+      
+     
+      
+      prc_version_update_status(in_user_name => in_sap_return.DATA_KEY8,in_table_name => 'hm_del_material'
+                                ,in_row_id => in_sap_return.PASS_KEY2,in_last_version_flag => '1'
+                                ,in_operate_status => 'NVL',in_lock_flag => '0'
+                                ,in_version_step => 0.1,in_return_batch_id => in_sap_return.DATA_KEY7
+                                ,retcode => retcode,retmsg => retmsg);
+      if retcode = 'E' then 
+          retcode := 'RE'; 
+          return; 
+      end if; 
+    end if; 
+    retcode := 'S';
+    commit;
+  exception
+    when others then
+      ROLLBACK;
+      retcode:= 'E';
+      retmsg  := sqlerrm;
+  end prc_version_update;
+  procedure redoSetSapReturn ( old_batch_id in varchar2,
+                               new_batch_id out varchar2,
+                               retcode out varchar2,
+                               retmsg out varchar2)
+                               
+  is
+    -- Non-scalar parameters require additional processing 
+    sapins sap_return_table2 := sap_return_table2();
+    v_row  sap_return_type2 := sap_return_type2(null,null,null,null,null,null,null,null,null,null,
+                                              null,null,null,null,null,null,null,null,null,null,
+                                              null,null,null,null,null,null,null,null,null,null,
+                                              null,null,null,null
+                                             );
+    
+    cursor cur_hm_sap_return is
+      select * from hm_sap_return t where t.data_key7 = old_batch_id;
+    l_hm_sap_return cur_hm_sap_return%rowtype;
+    l_return_batch_id varchar2(20);
+  begin
+    
+    l_return_batch_id := comm_util.func_new_rowid();
+  
+    open cur_hm_sap_return;
+    loop
+      fetch cur_hm_sap_return into l_hm_sap_return;
+      exit when cur_hm_sap_return%notfound;
+      
+      v_row.LOG_NO := l_hm_sap_return.LOG_NO;
+      v_row.LOG_MSG_NO := l_hm_sap_return.LOG_MSG_NO;
+      v_row.MESSAGE_TYPE := l_hm_sap_return.MESSAGE_TYPE;
+      v_row.MESSAGE_ID := l_hm_sap_return.MESSAGE_ID;
+      v_row.MESSAGE_NUMBER := l_hm_sap_return.MESSAGE_NUMBER;
+      v_row.MESSAGE_V1 := l_hm_sap_return.MESSAGE_V1;
+      v_row.MESSAGE_V2 := l_hm_sap_return.MESSAGE_V2;
+      v_row.MESSAGE_V3 := l_hm_sap_return.MESSAGE_V3;
+      v_row.MESSAGE_V4 := l_hm_sap_return.MESSAGE_V4;
+      v_row.MESSAGE := l_hm_sap_return.MESSAGE;
+      v_row.DATA_ROW := l_hm_sap_return.DATA_ROW;
+      v_row.DATA_FIELD := l_hm_sap_return.DATA_FIELD;
+      v_row.DATA_SYSTEM := l_hm_sap_return.DATA_SYSTEM;
+      v_row.DATA_KEY1 := l_hm_sap_return.DATA_KEY1;
+      v_row.DATA_KEY2 := l_hm_sap_return.DATA_KEY2;
+      v_row.DATA_KEY3 := l_hm_sap_return.DATA_KEY3;
+      v_row.DATA_KEY4 := l_hm_sap_return.DATA_KEY4;
+      v_row.DATA_KEY5 := l_hm_sap_return.DATA_KEY5;
+      v_row.DATA_KEY6 := l_hm_sap_return.DATA_KEY6;
+      v_row.DATA_KEY7 := l_return_batch_id;
+      v_row.DATA_KEY8 := l_hm_sap_return.DATA_KEY8;
+      v_row.PASS_KEY1 := l_hm_sap_return.PASS_KEY1;
+      v_row.PASS_KEY2 := l_hm_sap_return.PASS_KEY2;
+      v_row.PASS_KEY3 := l_hm_sap_return.PASS_KEY3;
+      v_row.PASS_KEY4 := l_hm_sap_return.PASS_KEY4;
+      v_row.OPERATE_STATUS := l_hm_sap_return.OPERATE_STATUS;
+      v_row.MASTER_TYPE := l_hm_sap_return.MASTER_TYPE;
+      v_row.ROW_ID := l_hm_sap_return.ROW_ID;
+      v_row.CREATED_BY := l_hm_sap_return.CREATED_BY;
+      v_row.CREATED := l_hm_sap_return.CREATED;
+      v_row.LAST_UPD_BY := l_hm_sap_return.LAST_UPD_BY;
+      v_row.LAST_UPD := l_hm_sap_return.LAST_UPD;
+      v_row.MODIFICATION_NUM := l_hm_sap_return.MODIFICATION_NUM;
+      v_row.REMARK := l_hm_sap_return.REMARK;
+      
+      sapins.extend;
+      sapins(sapins.count) := v_row;
+      
+    end loop;
+    
+    -- Call the procedure
+    setDelSapReturn(sapins => sapins,
+                      return_batch_id => new_batch_id,
+                      retcode => retcode,
+                      retmsg => retmsg);
+  
+ 
+  end redoSetSapReturn;
+  --物料冻结解冻批导
+  PROCEDURE PRC_MATERIAL_DEL_IMPORT(IN_ACTION_BATCH_ID   IN VARCHAR2,
+                                    IN_TABLE_NAME        IN VARCHAR2,
+                                    IN_COLUMN_NAME       IN VARCHAR2,
+                                    IN_TRANSFER_SAP_FLAG IN VARCHAR2,
+                                    IN_ACCOUNT           IN VARCHAR2,
+                                    RETCODE              OUT VARCHAR2,
+                                    RETMSG               OUT VARCHAR2) IS
+  
+    LCL_ROW_COUNT       INT;
+    STR_SQL             VARCHAR2(250);
+    LCL_MATERIAL_ROW_ID VARCHAR2(50);
+    LCL_SUCC_COUNT      INTEGER;
+    TYPE CUR_TYPE IS REF CURSOR;
+    CUR_HM_DEL_MATERIAL_IMP     CUR_TYPE;
+    LCL_HM_DEL_MATERIAL_IMP_ROW HM_DEL_MATERIAL_IMP%ROWTYPE;
+    LCL_MSG_ERROR               VARCHAR2(4000) := '';
+    LCL_ERROR_FLAG              INTEGER;
+  BEGIN
+    RETCODE        := 'E';
+    RETMSG         := '操作出错!';
+    LCL_SUCC_COUNT := 0;
+    IF IN_COLUMN_NAME IS NULL AND
+       (UPPER(IN_TABLE_NAME) = 'HM_DEL_MATERIAL') THEN
+      STR_SQL := 'select * from ' || IN_TABLE_NAME ||
+                 '_imp where action_batch_id = ''' || IN_ACTION_BATCH_ID || '''';
+      OPEN CUR_HM_DEL_MATERIAL_IMP FOR STR_SQL;
+      LOOP
+        FETCH CUR_HM_DEL_MATERIAL_IMP
+          INTO LCL_HM_DEL_MATERIAL_IMP_ROW;
+        EXIT WHEN CUR_HM_DEL_MATERIAL_IMP%NOTFOUND;
+        LCL_ERROR_FLAG := 0;
+        LCL_MSG_ERROR  := '';
+        LCL_ROW_COUNT := 0;
+        --判断客户号是否有效
+        IF LCL_HM_DEL_MATERIAL_IMP_ROW.MATERIAL_CODE IS NULL THEN
+          --客户号为空,错误
+          LCL_MSG_ERROR  := LCL_MSG_ERROR || '物料号为空！';
+          LCL_ERROR_FLAG := 1;
+        ELSE
+          FOR LCL_MTL_GENERAL_TEMP IN (SELECT ROW_ID FROM HM_MTL_GENERAL WHERE MATERIAL_CODE = LCL_HM_DEL_MATERIAL_IMP_ROW.MATERIAL_CODE)
+          LOOP
+            LCL_MATERIAL_ROW_ID := LCL_MTL_GENERAL_TEMP.ROW_ID;
+            LCL_ROW_COUNT := LCL_ROW_COUNT + 1;
+          END LOOP;
+          /*SELECT COUNT(*), MAX(ROW_ID)
+            INTO LCL_ROW_COUNT, LCL_CUSTOMER_ROW_ID
+            FROM HM_CUSTOMERS
+           WHERE CUSTOMER_NUMBER =
+                 LCL_HM_DEL_CUSTOMER_IMP_ROW.CUSTOMER_NUMBER;*/
+          IF LCL_ROW_COUNT = 0 THEN
+            LCL_MSG_ERROR  := LCL_MSG_ERROR ||
+                              LCL_HM_DEL_MATERIAL_IMP_ROW.MATERIAL_CODE ||
+                              '物料号在物料主数据中不存在！';
+            LCL_ERROR_FLAG := 1;
+          END IF;
+        END IF; --end 判断客户号是否有效
+        
+        --判断导入数据项是否合法
+        IF LCL_ERROR_FLAG = 0 THEN
+          --数据合法
+          
+          INSERT INTO HM_DEL_MATERIAL VALUES LCL_HM_DEL_MATERIAL_IMP_ROW;
+          UPDATE HM_ACTION_BATCH_ITEM
+             SET REMARK = '该信息在系统中不存在，已进行新增处理'
+           WHERE MASTER_ROW_ID = LCL_HM_DEL_MATERIAL_IMP_ROW.ROW_ID
+             AND ACTION_BATCH_ID = IN_ACTION_BATCH_ID;
+          LCL_SUCC_COUNT := LCL_SUCC_COUNT + 1;
+          --如果是否GVS标识为0并且标识为X，则在MDM系统中删除该物料，如果为空则解冻
+          if IN_TRANSFER_SAP_FLAG =0 and LCL_HM_DEL_MATERIAL_IMP_ROW.DELETE_ALL_FLAG='X' then
+            update hm_mtl_general set DELETE_FLAG='1',ACTIVE_FLAG='0',
+             LAST_UPD=sysdate,CREATED=sysdate,CREATED_BY=IN_ACCOUNT,
+             LAST_UPD_BY=IN_ACCOUNT where MATERIAL_CODE=LCL_HM_DEL_MATERIAL_IMP_ROW.MATERIAL_CODE;
+             
+           elsif IN_TRANSFER_SAP_FLAG =0 and LCL_HM_DEL_MATERIAL_IMP_ROW.DELETE_ALL_FLAG is null then
+             update hm_mtl_general set DELETE_FLAG='0',ACTIVE_FLAG='1',
+             LAST_UPD=sysdate,CREATED=sysdate,CREATED_BY=IN_ACCOUNT,
+             LAST_UPD_BY=IN_ACCOUNT where MATERIAL_CODE=LCL_HM_DEL_MATERIAL_IMP_ROW.MATERIAL_CODE;
+             
+          end if;  
+
+        ELSE
+          --数据不合法
+          UPDATE HM_ACTION_BATCH_ITEM
+             SET REMARK = LCL_MSG_ERROR, SUCCESS_FLAG = '0'
+           WHERE MASTER_ROW_ID = LCL_HM_DEL_MATERIAL_IMP_ROW.ROW_ID
+             AND ACTION_BATCH_ID = IN_ACTION_BATCH_ID;
+        END IF;
+        COMMIT;
+      END LOOP;
+      RETCODE := 'S';
+      RETMSG  := '操作完成!' || LCL_SUCC_COUNT || '/' ||
+                 CUR_HM_DEL_MATERIAL_IMP%ROWCOUNT;
+      CLOSE CUR_HM_DEL_MATERIAL_IMP;
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      ROLLBACK;
+      RETCODE := 'E';
+      RETMSG  := '物料冻结/解冻信息操作异常!' || SQLERRM;
+  END PRC_MATERIAL_DEL_IMPORT;
+  
+  --导入供应商冻结解冻
+  PROCEDURE PRC_VENDOR_DEL_IMPORT(IN_ACTION_BATCH_ID   IN VARCHAR2,
+                                    IN_TABLE_NAME        IN VARCHAR2,
+                                    IN_COLUMN_NAME       IN VARCHAR2,
+                                    IN_TRANSFER_SAP_FLAG IN VARCHAR2,
+                                    RETCODE              OUT VARCHAR2,
+                                    RETMSG               OUT VARCHAR2) IS
+  
+    LCL_ROW_COUNT       INT;
+    STR_SQL             VARCHAR2(250);
+    LCL_VENDOR_ROW_ID VARCHAR2(50);
+    LCL_SUCC_COUNT      INTEGER;
+    TYPE CUR_TYPE IS REF CURSOR;
+    CUR_HM_DEL_VENDOR_IMP     CUR_TYPE;
+    LCL_HM_DEL_VENDOR_IMP_ROW HM_DEL_VENDOR_IMP%ROWTYPE;
+    LCL_MSG_ERROR               VARCHAR2(4000) := '';
+    LCL_ERROR_FLAG              INTEGER;
+  BEGIN
+    RETCODE        := 'E';
+    RETMSG         := '操作出错!';
+    LCL_SUCC_COUNT := 0;
+    IF IN_COLUMN_NAME IS NULL AND
+       (UPPER(IN_TABLE_NAME) = 'HM_DEL_VENDOR') THEN
+      STR_SQL := 'select * from ' || IN_TABLE_NAME ||
+                 '_imp where action_batch_id = ''' || IN_ACTION_BATCH_ID || '''';
+      OPEN CUR_HM_DEL_VENDOR_IMP FOR STR_SQL;
+      LOOP
+        FETCH CUR_HM_DEL_VENDOR_IMP
+          INTO LCL_HM_DEL_VENDOR_IMP_ROW;
+        EXIT WHEN CUR_HM_DEL_VENDOR_IMP%NOTFOUND;
+        LCL_ERROR_FLAG := 0;
+        LCL_MSG_ERROR  := '';
+        LCL_ROW_COUNT := 0;
+        --判断客户号是否有效
+        IF LCL_HM_DEL_VENDOR_IMP_ROW.VENDOR_CODE IS NULL THEN
+          --客户号为空,错误
+          LCL_MSG_ERROR  := LCL_MSG_ERROR || '客户号为空！';
+          LCL_ERROR_FLAG := 1;
+        ELSE
+          FOR LCL_VENDOR_TEMP IN (SELECT ROW_ID FROM HM_VENDORS WHERE VENDOR_CODE = LCL_HM_DEL_VENDOR_IMP_ROW.VENDOR_CODE)
+          LOOP
+            LCL_VENDOR_ROW_ID := LCL_VENDOR_TEMP.ROW_ID;
+            LCL_ROW_COUNT := LCL_ROW_COUNT + 1;
+          END LOOP;
+          /*SELECT COUNT(*), MAX(ROW_ID)
+            INTO LCL_ROW_COUNT, LCL_CUSTOMER_ROW_ID
+            FROM HM_CUSTOMERS
+           WHERE CUSTOMER_NUMBER =
+                 LCL_HM_DEL_CUSTOMER_IMP_ROW.CUSTOMER_NUMBER;*/
+          IF LCL_ROW_COUNT = 0 THEN
+            LCL_MSG_ERROR  := LCL_MSG_ERROR ||
+                              LCL_HM_DEL_VENDOR_IMP_ROW.VENDOR_CODE ||
+                              '供应商号在供应商主数据中不存在！';
+            LCL_ERROR_FLAG := 1;
+          END IF;
+        END IF; --end 判断客户号是否有效
+        --判断公司代码是否存在
+        IF LCL_HM_DEL_VENDOR_IMP_ROW.COMPANY_CODE IS NOT NULL AND
+           LCL_ERROR_FLAG = 0 THEN
+          LCL_ROW_COUNT := 0;
+          SELECT COUNT(*)
+            INTO LCL_ROW_COUNT
+            FROM HM_VENDOR_COMPANY_DATA
+           WHERE VENDOR_ID = LCL_VENDOR_ROW_ID
+             AND COMPANY_CODE = LCL_HM_DEL_VENDOR_IMP_ROW.COMPANY_CODE;
+          IF LCL_ROW_COUNT = 0 THEN
+            LCL_MSG_ERROR  := LCL_MSG_ERROR ||
+                              LCL_HM_DEL_VENDOR_IMP_ROW.COMPANY_CODE ||
+                              '公司编码不存在！';
+            LCL_ERROR_FLAG := 1;
+          END IF;
+        END IF; --end 判断公司代码是否存在
+        --判断销售区域是否存在
+        IF LCL_HM_DEL_VENDOR_IMP_ROW.PURCHASE_GRP_CODE IS NOT NULL  AND
+           LCL_ERROR_FLAG = 0 THEN
+          LCL_ROW_COUNT := 0;
+          SELECT COUNT(*)
+            INTO LCL_ROW_COUNT
+            FROM HM_VENDOR_PUR_DATA
+           WHERE VENDOR_ID = LCL_VENDOR_ROW_ID
+             AND PURCHASE_GRP_CODE = LCL_HM_DEL_VENDOR_IMP_ROW.Purchase_Grp_Code;
+          IF LCL_ROW_COUNT = 0 THEN
+            LCL_MSG_ERROR  := LCL_MSG_ERROR ||
+                              LCL_HM_DEL_VENDOR_IMP_ROW.Purchase_Grp_Code ||
+                              '采购组织不存在！';
+            LCL_ERROR_FLAG := 1;
+          END IF;
+        END IF; --end 判断销售区域是否存在
+        --判断导入数据项是否合法
+        IF LCL_ERROR_FLAG = 0 THEN
+          --数据合法
+          --LCL_HM_DEL_VENDOR_IMP_ROW.SALES_ALL_FLAG := LCL_HM_DEL_VENDOR_IMP_ROW.COMPANY_ALL_FLAG;
+          INSERT INTO HM_DEL_VENDOR VALUES LCL_HM_DEL_VENDOR_IMP_ROW;
+          UPDATE HM_ACTION_BATCH_ITEM
+             SET REMARK = '该信息在系统中不存在，已进行新增处理'
+           WHERE MASTER_ROW_ID = LCL_HM_DEL_VENDOR_IMP_ROW.ROW_ID
+             AND ACTION_BATCH_ID = IN_ACTION_BATCH_ID;
+          LCL_SUCC_COUNT := LCL_SUCC_COUNT + 1;
+        ELSE
+          --数据不合法
+          UPDATE HM_ACTION_BATCH_ITEM
+             SET REMARK = LCL_MSG_ERROR, SUCCESS_FLAG = '0'
+           WHERE MASTER_ROW_ID = LCL_HM_DEL_VENDOR_IMP_ROW.ROW_ID
+             AND ACTION_BATCH_ID = IN_ACTION_BATCH_ID;
+        END IF;
+        COMMIT;
+      END LOOP;
+      RETCODE := 'S';
+      RETMSG  := '操作完成!' || LCL_SUCC_COUNT || '/' ||
+                 CUR_HM_DEL_VENDOR_IMP%ROWCOUNT;
+      CLOSE CUR_HM_DEL_VENDOR_IMP;
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      ROLLBACK;
+      RETCODE := 'E';
+      RETMSG  := '供应商冻结/解冻信息操作异常!' || SQLERRM;
+  END PRC_VENDOR_DEL_IMPORT;
+  /****************************************************************
+  功能描述：客户解冻之前处理被解冻客户与其售达方之间的合作伙伴关系，并输出售达方信息
+  作者：    xuky 
+  时间：    2011-10-20      
+       
+  输入参数说明： in_cust_freeze_rowid      客户解冻表row_id 
+                 
+  输出参数说明： out_sp_rowid         对应的售达方客户表中的row_id
+                 out_flag             表明售达方是否需要自动提交，因为如果售达方的合作伙伴太多的话，无法自动提交，需要手工提报SAP
+                 retcode              标记成功或者失败(E/S)
+                 retmsg               消息
+  功能说明：
+       1.由BPEL自动调用           
+            
+  ****************************************************************/                                
+  PROCEDURE prc_process_freeze_cust_info(in_cust_freeze_rowid  in  varchar2,
+                              out_sp_rowid          out varchar2,
+                              out_flag              out varchar2,
+                              retcode               out varchar2,
+                              retmsg                out varchar2) is
+     lcl_count number ;  
+     lcl_function varchar2(20);--合作伙伴类型    
+     lcl_limit  number := 2000;--限定售达方最多有2000个合作伙伴，再多就不允许自动提交了，需要手工提交
+     lcl_number number := 0;                   
+  begin
+    for cur_row in (select a.customer_number, a.customer_number_sp,a.customer_category,a.industry_class,a.branch_company_code,a.created_by,b.account_group,b.row_id,a.jyt,a.area_code from hm_del_customer_thaw a,hm_customers b where a.customer_number = b.customer_number and a.last_version_flag='2' and a.operate_status <> 'NVL' and  a.row_id = in_cust_freeze_rowid)
+    loop
+      if cur_row.account_group = '0380' then
+        lcl_function := 'PY';
+      elsif cur_row.account_group = '0280' then
+        lcl_function := 'SH';  
+      else
+        retcode := 'E';
+        retmsg := '本功能只能解冻0280和0380账户组的客户';
+        return;  
+      end if;
+      --首先在售达方下维护合作伙伴关系
+      --判断在售达方现有的合作伙伴中有没有该客户且该关系是否处于未删除状态,获取售达方的销售视图
+      for cur_sales_row in (select b.row_id from hm_customers a,hm_customer_sales_data b where b.delete_flag = '0' and  b.customer_id = a.row_id  and a.customer_number = cur_row.customer_number_sp)
+      loop
+        lcl_count := 0;
+        for cur_partner in (select c.row_id , c.delete_flag from hm_customer_partners c where c.cust_partner_type = lcl_function and c.cust_partner_subject_id = cur_row.customer_number and c.sales_area_view_id = cur_sales_row.row_id)
+        loop  
+          --判断删除标记，如果为1，则更新为0
+          if cur_partner.delete_flag = '1' then
+            insert into hm_customer_partners_his 
+              select * from hm_customer_partners where row_id = cur_partner.row_id;
+            update hm_customer_partners a set a.delete_flag = '0',a.last_upd = sysdate,a.last_upd_by = cur_row.created_by where a.row_id =  cur_partner.row_id;                         
+          end if;
+          lcl_count := 1;           
+        end loop; 
+        --20120418 xuky 取消没有合作伙伴新建
+        /*if lcl_count = 0 then  --没有合作伙伴，所以需要新建
+          insert into hm_customer_partners(row_id,sales_area_view_id,cust_partner_subject_id,cust_partner_type,created_by,remark)
+           values(comm_util.FUNC_NEW_ROWID,cur_sales_row.row_id,cur_row.customer_number,lcl_function,cur_row.created_by,'解冻'||cur_row.customer_number||'时自动生成合作伙伴');
+        end if;*/
+        --更新销售视图
+        update hm_customer_sales_data a set a.last_version_flag = '2',a.operate_status = decode(a.operate_status,'CREATE','CREATE','UPDATE') where a.row_id = cur_sales_row.row_id; 
+        --更新售达方
+       -- update hm_customers a set a.last_version_flag = '2',a.operate_status
+      end loop;
+      --修改解冻客户的删除标记，大小渠道，管理客户
+      insert into hm_customers_his select * from hm_customers a where a.row_id = cur_row.row_id;
+      update hm_customers a set a.last_version_flag = '2',a.delete_flag = '0',
+             a.last_upd_by = cur_row.created_by,a.last_upd = sysdate,
+             a.operate_status = decode(a.operate_status,'CREATE','CREATE','UPDATE'),
+             a.customer_category = cur_row.customer_category,a.industry_class = cur_row.industry_class
+       where a.row_id = cur_row.row_id;
+       --修改扩展视图
+       insert into  hm_cust_additional_data_his select * from  hm_cust_additional_data a where a.customer_id = cur_row.row_id;
+       update hm_cust_additional_data a 
+              set a.manage_customer =  cur_row.branch_company_code,
+                  a.last_upd=sysdate,
+                  a.last_upd_by = cur_row.created_by                  
+       where a.customer_id = cur_row.row_id;  
+       --判断管理客户是否需要解冻
+       lcl_count := 0;
+       select count(*) into lcl_count from hm_cust_sub_company a where a.delete_flag = '1' and a.branch_company_code = cur_row.branch_company_code;
+       if lcl_count > 0 then --管理客户处于冻结状态，解冻
+         insert into hm_cust_sub_company_his 
+         select * from hm_cust_sub_company a where a.branch_company_code = cur_row.branch_company_code;
+         update hm_cust_sub_company a set a.last_upd=sysdate,
+                  a.jyt  = cur_row.jyt,
+                  a.area_code = cur_row.area_code,
+                  a.last_upd_by = cur_row.created_by,
+                  a.delete_flag = '0'
+          where a.branch_company_code = cur_row.branch_company_code;        
+       end if;
+       --判断售达方有效合作伙伴的条数
+       select count(*),max(a.cust_row_id) into lcl_number,out_sp_rowid from view_cust_partner_all a where a.cust_delete_flag = '0' and a.sales_delete_flag = '0' and a.partner_delete_flag = '0' and a.sub_customer_delete_flag = '0' and a.customer_number = cur_row.customer_number_sp;
+       if lcl_number > lcl_limit then
+         out_flag := 0;
+         update hm_del_customer_thaw s set s.remark = '售达方合作伙伴太多无法自动提交，请手工提交sap'
+         where row_id = in_cust_freeze_rowid;
+       else
+         out_flag := 1;  
+       end if;      
+       exit; 
+    end loop; 
+    retcode := 'S';
+    retmsg  := 'ok'; 
+    commit;
+  exception
+    when others then
+      rollback;
+      retcode := 'E';
+      retmsg  := '网络或数据库异常!异常代码:' || sqlcode || ';异常信息:' ||sqlerrm; 
+  end prc_process_freeze_cust_info;   
+   PROCEDURE getCustomerFreeze
+  (
+    in_key_id            IN VARCHAR2,
+    in_operate_status    IN VARCHAR2,
+    in_worklist_id       IN VARCHAR2,
+    in_user_name         in varchar2,
+    out_param_input      out varchar2,
+    out_itab_data        out customer_del_table,
+    out_retcode          out varchar2,
+    out_retmsg           out varchar2
+  ) IS
+
+  l_return_batch_id     varchar2(20);
+  CURSOR cur_del_customer IS
+      SELECT * FROM hm_del_customer_thaw t
+       WHERE  t.last_version_flag = '2' and t.operate_status = 'CREATE'
+           and t.delete_flag = '0' and t.row_id = in_key_id;
+  cur_del_customer_row  hm_del_customer_thaw%ROWTYPE;
+  lcl_customer_del_type  customer_del_type := customer_del_type(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+                                                                NULL,NULL,NULL,NULL,NULL
+                                                                );
+  lcl_operate_status varchar2(20);    
+  lcl_delete_flag1 varchar2(1) := '0';
+  lcl_delete_flag2 varchar2(1) := '0';  
+  lcl_delete_flag  varchar2(1) := '0';    
+  lcl_customer_company_id     varchar2(20);   
+  retcode    varchar2(20); 
+  retmsg varchar2(2000);                                          
+  begin
+    out_retcode := 'S';
+    out_retmsg  := '操作成功';
+    l_return_batch_id := comm_util.func_new_rowid;
+    out_itab_data := customer_del_table();
+    open cur_del_customer;
+    loop fetch cur_del_customer into cur_del_customer_row;
+        exit when cur_del_customer%NOTFOUND;
+        
+        lcl_customer_del_type.ROW_ID := cur_del_customer_row.row_id;
+        lcl_customer_del_type.CUSTOMER_NUMBER := cur_del_customer_row.customer_number;
+        /*lcl_customer_del_type.COMPANY_CODE := cur_del_customer_row.company_code;
+        lcl_customer_del_type.SALES_GROUP := cur_del_customer_row.sales_group;
+        lcl_customer_del_type.DISTRIBUTION_CHANNEL := cur_del_customer_row.distribution_channel;
+        lcl_customer_del_type.DIVISION := cur_del_customer_row.division;
+        lcl_customer_del_type.COMPANY_ALL_FLAG := cur_del_customer_row.company_all_flag;
+        lcl_customer_del_type.COMPANY_SPEC_FLAG := cur_del_customer_row.company_spec_flag;
+        lcl_customer_del_type.SALES_ALL_FLAG := cur_del_customer_row.sales_all_flag;
+        lcl_customer_del_type.SALES_SPEC_FLAG := cur_del_customer_row.sales_spec_flag;
+        lcl_customer_del_type.SALES_ALL_REASON_OR := cur_del_customer_row.sales_all_reason_or;
+        lcl_customer_del_type.SALES_SPEC_REASON_OR := cur_del_customer_row.sales_spec_reason_or;
+        lcl_customer_del_type.SALES_ALL_REASON_GR := cur_del_customer_row.sales_all_reason_gr;
+        lcl_customer_del_type.SALES_SPEC_REASON_GR := cur_del_customer_row.sales_spec_reason_gr;
+        lcl_customer_del_type.SALES_ALL_REASON_BL := cur_del_customer_row.sales_all_reason_bl;
+        lcl_customer_del_type.SALES_SPEC_REASON_BL := cur_del_customer_row.sales_spec_reason_bl;*/
+        lcl_customer_del_type.CREATED_BY := cur_del_customer_row.created_by;
+        lcl_customer_del_type.CREATED := cur_del_customer_row.created;
+        lcl_customer_del_type.LAST_UPD_BY := cur_del_customer_row.last_upd_by;
+        lcl_customer_del_type.LAST_UPD := cur_del_customer_row.last_upd;
+        /*lcl_customer_del_type.MODIFICATION_NUM := cur_del_customer_row.modification_num;
+        lcl_customer_del_type.DELETE_FLAG := cur_del_customer_row.delete_flag;
+        lcl_customer_del_type.ACTIVE_FLAG := cur_del_customer_row.active_flag;
+        lcl_customer_del_type.REMARK := cur_del_customer_row.remark;
+        lcl_customer_del_type.VERSION := cur_del_customer_row.version;
+        lcl_customer_del_type.LAST_VERSION_FLAG := cur_del_customer_row.last_version_flag;
+        lcl_customer_del_type.OPERATE_STATUS := cur_del_customer_row.operate_status;
+        lcl_customer_del_type.LOCK_FLAG := cur_del_customer_row.lock_flag;
+        lcl_customer_del_type.RETURN_BATCH_ID := cur_del_customer_row.return_batch_id;
+        lcl_customer_del_type.ACTION_BATCH_ID := cur_del_customer_row.action_batch_id;
+        lcl_customer_del_type.FOR_GVS := cur_del_customer_row.for_gvs;
+        lcl_customer_del_type.AUDIT_FLAG := cur_del_customer_row.audit_flag;*/
+        lcl_customer_del_type.MASTER_TYPE := 'CUSTOMER';
+        /*lcl_customer_del_type.DATA_KEY1 := cur_del_customer_row.customer_number;
+        lcl_customer_del_type.DATA_KEY2 := cur_del_customer_row.company_code;
+        lcl_customer_del_type.DATA_KEY3 := cur_del_customer_row.sales_group;
+        lcl_customer_del_type.DATA_KEY4 := cur_del_customer_row.distribution_channel;
+        lcl_customer_del_type.DATA_KEY5 := cur_del_customer_row.division;*/
+        if cur_del_customer_row.action_batch_id is not null then
+          l_return_batch_id := cur_del_customer_row.action_batch_id;
+        end if;
+        lcl_customer_del_type.DATA_KEY7 := l_return_batch_id;    
+        lcl_customer_del_type.DATA_KEY8 := in_user_name;
+        lcl_customer_del_type.PASS_KEY1 := 'CUSTOMERDEL';
+        lcl_customer_del_type.PASS_KEY2 := lcl_customer_del_type.ROW_ID;
+        lcl_customer_del_type.PASS_KEY3 := lcl_customer_del_type.ROW_ID;
+        lcl_customer_del_type.PASS_KEY4 := in_worklist_id;        
+        out_itab_data.extend;
+        out_itab_data(out_itab_data.count) := lcl_customer_del_type;       
+    end loop;
+    close cur_del_customer;
+  exception
+    when others then
+    out_retcode := 'E';
+    out_retmsg  := '网络或数据库异常!异常代码:' || sqlcode || ';异常信息:' ||sqlerrm; 
+  end getCustomerFreeze;      
+  PROCEDURE setFreezeSapReturn
+	(
+		sapins  IN sap_return_table2,
+    return_batch_id out varchar2,
+		retcode OUT VARCHAR2,
+    retmsg  OUT VARCHAR2
+	) IS
+ 		v_sapreturn hm_sap_return%ROWTYPE;
+		v_sapins    sap_return_type2;
+    S_COUNT     INTEGER;
+    lcl_temp    varchar2(100);
+    lcl_retMsg varchar2(2000); 
+   -- t_operate     sap_return_table2 := sap_return_table2();
+      
+   -- find_flag   char(1);
+   -- commit_flag char(1);
+
+	BEGIN
+  
+		retcode := 'E';
+	  retmsg  := '解析SAP返回数据，处理异常';
+    --commit_flag := '0';
+    s_count := 0;
+    --begin
+    
+    for i in 1..sapins.count
+    loop
+      v_sapins := sapins(i);
+           
+      v_sapreturn.pass_key1      := v_sapins.pass_key1;
+      v_sapreturn.pass_key2      := v_sapins.pass_key2;
+      v_sapreturn.pass_key3      := v_sapins.pass_key3;
+      v_sapreturn.pass_key4      := v_sapins.pass_key4;
+      v_sapreturn.message_type   := v_sapins.message_type;
+      v_sapreturn.message_id     := v_sapins.message_id;
+      v_sapreturn.message_number := v_sapins.message_number;
+      v_sapreturn.message_v1     := v_sapins.message_v1;
+      v_sapreturn.message_v2     := v_sapins.message_v2;
+      v_sapreturn.message_v3     := v_sapins.message_v3;
+      v_sapreturn.message_v4     := v_sapins.message_v4;
+      v_sapreturn.message        := v_sapins.message;
+      --xuky 20110121
+      lcl_retMsg := v_sapins.message;
+      v_sapreturn.data_row       := v_sapins.data_row;
+      v_sapreturn.data_field     := v_sapins.data_field;
+      v_sapreturn.data_system    := v_sapins.data_system;
+      v_sapreturn.data_key1      := v_sapins.data_key1;
+      v_sapreturn.data_key2      := v_sapins.data_key2;
+      v_sapreturn.data_key3      := v_sapins.data_key3;
+      v_sapreturn.data_key4      := v_sapins.data_key4;
+      v_sapreturn.data_key5      := v_sapins.data_key5;
+      v_sapreturn.data_key6      := v_sapins.data_key6;
+      v_sapreturn.data_key7      := v_sapins.data_key7;
+      v_sapreturn.data_key8      := v_sapins.data_key8;
+      v_sapreturn.operate_status := v_sapins.OPERATE_STATUS;
+      v_sapreturn.master_type    := v_sapins.MASTER_TYPE;
+        
+      v_sapreturn.row_id         := comm_util.func_new_rowid();
+      v_sapreturn.created_by     := v_sapins.data_key8;
+      v_sapreturn.created        := sysdate;
+      v_sapreturn.last_upd_by    := v_sapins.data_key8;
+      v_sapreturn.last_upd       := sysdate;
+        
+      INSERT INTO hm_sap_return
+      VALUES v_sapreturn;
+        
+      IF return_batch_id is null and v_sapins.data_key7 is not null then
+        return_batch_id := v_sapins.data_key7;
+      end if;
+
+      if v_sapins.message_type is not null then
+          
+        if not ( v_sapins.message_type = 'S' OR v_sapins.message_type = 'W' OR v_sapins.message_type = 'I' ) then
+            v_sapins.message_type := 'E';
+        end if;
+        if v_sapins.MESSAGE_TYPE = 'S' THEN
+            update hm_del_customer_thaw a set a.last_version_flag = '1',a.operate_status = 'NVL' 
+            where a.row_id = v_sapins.PASS_KEY2;
+            s_count := s_count + 1;
+        else
+            retcode := 'E';
+        end if;
+      end if;    
+
+    end loop;  
+    commit;  
+    if s_count = sapins.count then
+        retcode := 'S';
+        retmsg  := 'setSapReturn: SAP操作成功!'||S_COUNT||'/'||sapins.count;
+    elsif S_COUNT = 0 THEN 
+			retcode := 'E';
+      --retmsg  := 'setSapReturn: SAP操作失败,工作流需重新启动!'||S_COUNT||'/'||sapins.count;
+    elsif s_count< sapins.count then
+      retcode := 'R';
+      --retmsg  := 'setSapReturn: SAP操作部分成功,工作流需重新启动!'||S_COUNT||'/'||sapins.count;       
+    end if;  
+    if  retcode <> 'S' then
+      retcode:='E';
+      retmsg := lcl_retMsg;
+    end if;  
+	EXCEPTION
+		WHEN OTHERS THEN
+      rollback;
+		  retcode := 'E';
+      retmsg  := 'setSapReturn: 解析过程处理异常!'||sqlerrm;
+  end setFreezeSapReturn;                                   
+  --检查别的系统是否允许冻结该客户,由客户冻结BPEL流调用
+  PROCEDURE prc_check_shop_del_from_eai
+	(
+    in_row_id in varchar2,
+		in_check_shop_cust_tab  IN Check_Shop_Cust_Del_table,
+    out_sapins  out sap_return_table2,
+		retcode OUT VARCHAR2,
+    retmsg  OUT VARCHAR2
+	) IS  
+  lcl_SAP_RETURN_TYPE2 SAP_RETURN_TYPE2 := SAP_RETURN_TYPE2(null,null,null,null,null,null,null,null,null,null,
+                                                            null,null,null,null,null,null,null,null,null,null,
+                                                            null,null,null,null,null,null,null,null,null,null,
+                                                            null,null,null,null);    
+  v_sapreturn hm_sap_return%ROWTYPE;                                                          
+  begin
+    out_sapins := sap_return_table2();
+    lcl_SAP_RETURN_TYPE2.MASTER_TYPE := 'CUSTOMER';
+    lcl_SAP_RETURN_TYPE2.PASS_KEY1 := in_row_id;
+    lcl_SAP_RETURN_TYPE2.PASS_KEY3 := in_row_id;
+    select max(a.action_batch_id) into lcl_SAP_RETURN_TYPE2.DATA_KEY7 from hm_del_customer a where a.row_id = in_row_id;
+    retcode := 'S';
+    retmsg := 'OK';
+    for i in 1..in_check_shop_cust_tab.count loop
+      if in_check_shop_cust_tab(i).shopcode is not null then
+        insert into HM_DEL_CUSTOMER_INFO_LOG(row_id,Customer_Number,SYSTEM,RETCODE,MESSAGE)
+          values (comm_util.FUNC_NEW_ROWID,in_check_shop_cust_tab(i).shopcode,in_check_shop_cust_tab(i).sysname,in_check_shop_cust_tab(i).isLocked,in_check_shop_cust_tab(i).description);
+      end if;
+      
+      if in_check_shop_cust_tab(i).isLocked = 'N' then
+        --retcode := 'E';
+        lcl_SAP_RETURN_TYPE2.MESSAGE_TYPE := 'E';
+        lcl_SAP_RETURN_TYPE2.MESSAGE := 
+                 lcl_SAP_RETURN_TYPE2.MESSAGE||in_check_shop_cust_tab(i).shopcode||'('||
+                 in_check_shop_cust_tab(i).sysname||'):"'|| in_check_shop_cust_tab(i).description||'";';
+        lcl_SAP_RETURN_TYPE2.DATA_KEY1 := in_check_shop_cust_tab(i).shopcode;
+      end if;
+    end loop;
+    if lcl_SAP_RETURN_TYPE2.MESSAGE_TYPE is null then --表明全部通过
+      lcl_SAP_RETURN_TYPE2.MESSAGE_TYPE := 'S';
+      lcl_SAP_RETURN_TYPE2.MESSAGE := 'OK';
+    else --xuky 20121010 以后不考虑其他系统是否允许冻结，但又需要记录他们的返回消息，在这里插入日志表
+      
+      v_sapreturn.pass_key1      := lcl_SAP_RETURN_TYPE2.pass_key1;
+      v_sapreturn.pass_key2      := lcl_SAP_RETURN_TYPE2.pass_key2;
+      v_sapreturn.pass_key3      := lcl_SAP_RETURN_TYPE2.pass_key3;
+      v_sapreturn.pass_key4      := lcl_SAP_RETURN_TYPE2.pass_key4;
+      v_sapreturn.message_type   := lcl_SAP_RETURN_TYPE2.message_type;
+      v_sapreturn.message_id     := lcl_SAP_RETURN_TYPE2.message_id;
+      v_sapreturn.message_number := lcl_SAP_RETURN_TYPE2.message_number;
+      v_sapreturn.message_v1     := lcl_SAP_RETURN_TYPE2.message_v1;
+      v_sapreturn.message_v2     := lcl_SAP_RETURN_TYPE2.message_v2;
+      v_sapreturn.message_v3     := lcl_SAP_RETURN_TYPE2.message_v3;
+      v_sapreturn.message_v4     := lcl_SAP_RETURN_TYPE2.message_v4;
+      v_sapreturn.message        := lcl_SAP_RETURN_TYPE2.message;
+      
+      v_sapreturn.data_row       := lcl_SAP_RETURN_TYPE2.data_row;
+      v_sapreturn.data_field     := lcl_SAP_RETURN_TYPE2.data_field;
+      v_sapreturn.data_system    := lcl_SAP_RETURN_TYPE2.data_system;
+      v_sapreturn.data_key1      := lcl_SAP_RETURN_TYPE2.data_key1;
+      v_sapreturn.data_key2      := lcl_SAP_RETURN_TYPE2.data_key2;
+      v_sapreturn.data_key3      := lcl_SAP_RETURN_TYPE2.data_key3;
+      v_sapreturn.data_key4      := lcl_SAP_RETURN_TYPE2.data_key4;
+      v_sapreturn.data_key5      := lcl_SAP_RETURN_TYPE2.data_key5;
+      v_sapreturn.data_key6      := lcl_SAP_RETURN_TYPE2.data_key6;
+      v_sapreturn.data_key7      := lcl_SAP_RETURN_TYPE2.data_key7;
+      v_sapreturn.data_key8      := lcl_SAP_RETURN_TYPE2.data_key8;
+      v_sapreturn.operate_status := lcl_SAP_RETURN_TYPE2.OPERATE_STATUS;
+      v_sapreturn.master_type    := lcl_SAP_RETURN_TYPE2.MASTER_TYPE;
+        
+      v_sapreturn.row_id         := comm_util.func_new_rowid();
+      v_sapreturn.created_by     := lcl_SAP_RETURN_TYPE2.data_key8;
+      v_sapreturn.created        := sysdate;
+      v_sapreturn.last_upd_by    := lcl_SAP_RETURN_TYPE2.data_key8;
+      v_sapreturn.last_upd       := sysdate;
+        
+      INSERT INTO hm_sap_return
+      VALUES v_sapreturn;        
+    end if;
+    commit;
+    out_sapins.extend;
+    out_sapins(1) := lcl_SAP_RETURN_TYPE2;    
+  exception 
+    when others then
+      rollback;
+      retcode := 'E';
+      retmsg  := 'prc_check_shop_del_from_eai: 处理过程处理异常!'||sqlerrm; 
+      if out_sapins.count = 0 then
+        lcl_SAP_RETURN_TYPE2.MESSAGE_TYPE := 'E';
+        lcl_SAP_RETURN_TYPE2.MESSAGE := retmsg;
+        out_sapins.extend;
+        out_sapins(1) := lcl_SAP_RETURN_TYPE2;
+      else
+        out_sapins(1).MESSAGE_TYPE := 'E';  
+        out_sapins(1).MESSAGE := retmsg;
+      end if;
+  end prc_check_shop_del_from_eai; 
+  PROCEDURE getMaterialPlantDel
+  (
+    in_key_id            IN VARCHAR2,
+    in_operate_status    IN VARCHAR2,
+    in_worklist_id       IN VARCHAR2,
+    in_user_name         in varchar2,    
+    out_itab_data        out material_del_plant_table,
+    retcode          out varchar2,
+    retmsg           out varchar2,
+    out_sys          out varchar2
+  ) is   
+  lcl_material_del_plant_type   material_del_plant_type := material_del_plant_type(null,null,null,null,null,
+                                                                                   null,null,null,null,null,
+                                                                                   null,null,null,null,null,null,null,null);   
+  l_return_batch_id varchar2(20);
+  begin
+    retcode := 'S';
+    retmsg  := '操作成功';
+    l_return_batch_id := comm_util.func_new_rowid;
+    out_itab_data := material_del_plant_table();
+    for cur_row in (select * from hm_del_mtl_plant a where a.operate_status != 'NVL' and 
+                     a.delete_flag = '0' and a.row_id = in_key_id) loop
+      lcl_material_del_plant_type.material_code := cur_row.material_code;
+      lcl_material_del_plant_type.plant_code := cur_row.plant_code;
+      lcl_material_del_plant_type.delete_flag := cur_row.deletel_flag;
+      lcl_material_del_plant_type.MASTER_TYPE := 'MATERIALPLANTDEL';
+      lcl_material_del_plant_type.DATA_KEY1 := cur_row.MATERIAL_CODE;
+      lcl_material_del_plant_type.DATA_KEY7 := l_return_batch_id;    
+      lcl_material_del_plant_type.DATA_KEY8 := cur_row.created_by;
+      lcl_material_del_plant_type.PASS_KEY1 := 'MATERIALPLANTDEL';
+      lcl_material_del_plant_type.PASS_KEY2 := cur_row.ROW_ID;
+      lcl_material_del_plant_type.PASS_KEY3 := cur_row.ROW_ID;
+      lcl_material_del_plant_type.PASS_KEY4 := in_worklist_id;
+      out_itab_data.extend;
+      out_itab_data(out_itab_data.count) := lcl_material_del_plant_type;
+    end loop;
+    select MIN(t.char_value1)
+        INTO OUT_SYS
+        from hm_sys_config t
+       where t.conf_code = 'SYSTEM_CODE';
+    
+      if OUT_SYS is null then
+        OUT_SYS := 'DEV';
+      end if;
+  exception 
+    when others then
+      rollback;
+      retcode := 'E';
+      retmsg  := 'getMaterialPlantDel:处理过程出现异常!'|| sqlcode || ';异常信息:' ||sqlerrm; 
+  end getMaterialPlantDel;
+  PROCEDURE setMtlPlantDelSapReturn(       
+                in_itab_data        in material_del_plant_table,
+                in_sap_ret_code   in varchar2,
+                in_sap_ret_message   in varchar2,
+                retcode          out varchar2,
+                retmsg           out varchar2
+              )  is
+    v_sapreturn hm_sap_return%ROWTYPE;
+		v_sapins    material_del_plant_type;
+    S_COUNT     INTEGER;
+    --lcl_temp    varchar2(100);
+    --lcl_retMsg varchar2(2000); 
+   -- t_operate     sap_return_table2 := sap_return_table2();
+      
+   -- find_flag   char(1);
+   -- commit_flag char(1);
+
+	BEGIN
+  
+		retcode := 'E';
+	  retmsg  := '解析SAP返回数据，处理异常';
+    --commit_flag := '0';
+    s_count := 0;
+    --begin
+    
+    for i in 1..in_itab_data.count
+    loop
+      v_sapins := in_itab_data(i);
+           
+      v_sapreturn.pass_key1      := v_sapins.pass_key1;
+      v_sapreturn.pass_key2      := v_sapins.pass_key2;
+      v_sapreturn.pass_key3      := v_sapins.pass_key3;
+      v_sapreturn.pass_key4      := v_sapins.pass_key4;
+      v_sapreturn.message_type   := in_sap_ret_code;
+      v_sapreturn.message_id     := v_sapins.PASS_KEY2;
+      v_sapreturn.message_number := '';
+      v_sapreturn.message_v1     := '';
+      v_sapreturn.message_v2     := '';
+      v_sapreturn.message_v3     := '';
+      v_sapreturn.message_v4     := '';
+      v_sapreturn.message        := in_sap_ret_message;
+      if in_sap_ret_code = 'S' and trim(in_sap_ret_message) is null then
+        v_sapreturn.message := 'OK';
+      end if;
+      --xuky 20110121
+      --lcl_retMsg := in_sap_ret_message;
+      v_sapreturn.data_row       := '';
+      v_sapreturn.data_field     := '';
+      v_sapreturn.data_system    := '';
+      v_sapreturn.data_key1      := v_sapins.data_key1;
+      v_sapreturn.data_key2      := v_sapins.data_key2;
+      v_sapreturn.data_key3      := v_sapins.data_key3;
+      v_sapreturn.data_key4      := v_sapins.data_key4;
+      v_sapreturn.data_key5      := v_sapins.data_key5;
+      v_sapreturn.data_key6      := v_sapins.data_key6;
+      v_sapreturn.data_key7      := v_sapins.data_key7;
+      v_sapreturn.data_key8      := v_sapins.data_key8;
+      v_sapreturn.operate_status := '';
+      v_sapreturn.master_type    := v_sapins.MASTER_TYPE;
+        
+      v_sapreturn.row_id         := comm_util.func_new_rowid();
+      v_sapreturn.created_by     := v_sapins.data_key8;
+      v_sapreturn.created        := sysdate;
+      v_sapreturn.last_upd_by    := v_sapins.data_key8;
+      v_sapreturn.last_upd       := sysdate;
+        
+      INSERT INTO hm_sap_return
+      VALUES v_sapreturn;      
+          
+      /*if in_sap_ret_code is null or in_sap_ret_code != 'S' then
+          in_sap_ret_code := 'E';
+      end if;*/
+      if in_sap_ret_code = 'S' THEN
+          update hm_del_mtl_plant a set a.last_version_flag = '1',a.operate_status = 'NVL' 
+          where a.row_id = v_sapins.PASS_KEY2;
+          s_count := s_count + 1;
+      else
+          retcode := 'E';
+      end if;
+         
+      exit;
+    end loop;  
+    commit;  
+    /*if s_count = in_itab_data.count then
+        retcode := 'S';
+        retmsg  := 'setMtlPlantDelSapReturn: SAP操作成功!'||S_COUNT||'/'||in_itab_data.count;
+    elsif S_COUNT = 0 THEN 
+			retcode := 'E';
+      --retmsg  := 'setSapReturn: SAP操作失败,工作流需重新启动!'||S_COUNT||'/'||sapins.count;
+    elsif s_count< in_itab_data.count then
+      retcode := 'R';
+      --retmsg  := 'setSapReturn: SAP操作部分成功,工作流需重新启动!'||S_COUNT||'/'||sapins.count;       
+    end if;  */
+    if  retcode = 'S' then
+      
+      retmsg  := 'setMtlPlantDelSapReturn: SAP操作成功!'||S_COUNT||'/'||in_itab_data.count;
+    else  
+      retcode:='E';
+      retmsg := in_sap_ret_message;
+    end if;  
+	EXCEPTION
+		WHEN OTHERS THEN
+      rollback;
+		  retcode := 'E';
+      retmsg  := 'setMtlPlantDelSapReturn:处理过程出现异常!'|| sqlcode || ';异常信息:' ||sqlerrm; 
+  end setMtlPlantDelSapReturn;                                     
+END;

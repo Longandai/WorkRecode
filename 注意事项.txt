@@ -1,0 +1,9 @@
+设置ajax为同步
+	$.ajaxSetup({
+		  async: false
+		 });
+
+---换行符 (java表示 \n \r)会导致后台拼接的json到前台不可用 
+
+[解除数据库用户锁定]alter user hopemdm account unlock;
+

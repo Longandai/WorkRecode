@@ -1,0 +1,2347 @@
+create or replace package body product is
+
+  procedure prc_product_import(in_action_batch_id in varchar2,
+                               in_table_name      in varchar2,
+                               in_column_name     in varchar2,
+                               in_language        in varchar2,
+                               retcode            out varchar2,
+                               retmsg             out varchar2) is
+    lcl_count            number := 0;
+    lcl_count1           number := 0;
+    lcl_rowid            varchar2(20);
+    lcl_hm_product_apply hm_product_apply%rowtype;
+    lcl_hm_product_base  hm_product_base%rowtype;
+  
+    --lcl_hm_product_desc_data hm_product_desc_data%rowtype;
+    lcl_cotinue_exception exception;
+    lcl_retmsg                 varchar2(2000);
+    lcl_rows_finish            number := 0;
+    lcl_rows                   number := 0;
+    lcl_count2                 number := 0;
+    lcl_product_group          varchar2(20);
+    lcl_flag                   varchar2(2);
+    lcl_mdc_flag               number;
+    lcl_role                   varchar2(100);
+    lcl_hm_mtl_general_hope    hopemdm.hm_mtl_general%rowtype;
+    lcl_hm_mtl_general_haier   haiermdm.hm_mtl_general%rowtype;
+    lcl_hm_mtl_additional_data haiermdm.hm_mtl_additional_data%rowtype;
+  
+    lcl_hope_flag     varchar2(2) := '0';
+    lcl_haier_flag    varchar2(2) := '0';
+    lcl_material_code varchar2(50);
+    lcl_material_desc varchar2(400);
+    lcl_jyt           varchar2(20);
+    lcl_unit          varchar2(20);
+    lcl_version_rowid varchar2(20);
+    lcl_version       varchar2(20);
+  
+    lcl_hm_product_pl_fact        hm_product_pl_fact%rowtype;
+    lcl_hm_product_sales_org_data hm_product_sales_org_data%rowtype;
+  
+    lcl_company_type         varchar2(20);
+    lcl_service_type         varchar2(20);
+    lcl_markrt_type          varchar2(20);
+    lcl_development_category varchar2(20);
+    lcl_count3               number := 0;
+    lcl_is_std_product       varchar2(10);
+    lcl_str_split_table      str_split_table;
+    lcl_sales_id             varchar2(40);
+    lcl_sale_group           varchar2(20);
+    lcl_all_country          varchar2(1000);
+    lcl_country              varchar2(100);
+    lcl_abbreviation         varchar2(20);
+    lcl_guojiaCount          integer:=0;
+  begin
+    if in_table_name = 'HM_PRODUCT_APPLY' then
+      for cur_row in (select *
+                        from hm_product_apply a
+                       where a.action_batch_id = in_action_batch_id) loop
+        begin
+          lcl_rows             := lcl_rows + 1;
+          lcl_count            := 0;
+          lcl_hm_product_apply := cur_row;
+          lcl_count2           := 0;
+          lcl_count3           := 0;
+          lcl_flag             := '0';
+          lcl_hope_flag        := '0';
+          lcl_haier_flag       := '0';
+          if trim(lcl_hm_product_apply.product_code) is null then
+            if in_language = 'ZH' then
+              lcl_retmsg := '成品编码不能为空';
+            else
+              lcl_retmsg := 'Product code can not be empty';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          lcl_hm_product_apply.product_code := upper(lcl_hm_product_apply.product_code);
+          /*if trim(lcl_hm_product_apply.SERVICE_MODEL) is null then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            '售后服务型号不能为空';
+            else
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            ', Service?model?can not be empty';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;*/
+          if length(trim(lcl_hm_product_apply.product_code)) != 11 then
+            if in_language = 'ZH' then
+              lcl_retmsg := '成品编码必须为11位';
+            else
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            ', Product code must be?11 bits';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          ---首先校验编码是否已经存在
+          lcl_count := 0;
+          select count(*)
+            into lcl_count
+            from view_product_base a
+           where a.product_code = lcl_hm_product_apply.product_code;
+        
+          if lcl_count > 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            '已经存在，不能再次建立';
+            else
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            ', Product?already exists, you can not?create';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          lcl_material_code := substr(lcl_hm_product_apply.product_code,
+                                      1,
+                                      9);
+          --排查SPI中是否已经存在改基本视图
+          lcl_count := 0;
+          select count(*), max(row_id), max(product_group)
+            into lcl_count, lcl_rowid, lcl_product_group
+            from hm_product_base a
+           where a.product_code = lcl_material_code;
+          --前面已经在视图中判断了是否存在编码，因此不需要再次判断生产版次是否存在
+        
+          /*if lcl_count > 0 then
+            --spi存在
+            --检查生产版次是否已经存在
+            select count(*)
+              into lcl_count2
+              from 
+               a
+             where a.pro_char =
+                   substr(lcl_hm_product_apply.product_code, 10, 2)
+               and a.material_id = lcl_rowid;
+            if lcl_count2 > 0 then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              '已经存在，不能再次建立';
+              else
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              ', Product?already exists, you can not?create';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          end if;*/
+          --------------------------------字段校验
+        
+          if lcl_hm_product_apply.development_category is not null then
+            lcl_count3 := 0;
+            select count(*)
+              into lcl_count3
+              from hm_fnd_values a
+             where a.delete_flag = '0'
+               and a.value = lcl_hm_product_apply.development_category
+               and a.value_set_id = 'DevelopType';
+            if lcl_count3 = 0 then
+            
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_apply.product_code || '，开发类型' ||
+                              lcl_hm_product_apply.development_category ||
+                              '不存在!';
+              else
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              ', Develop Type ' ||
+                              lcl_hm_product_apply.development_category ||
+                              ' does not exists! ';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          end if;
+        
+          if lcl_hm_product_apply.market_type is not null then
+            lcl_count3 := 0;
+            select count(*)
+              into lcl_count3
+              from hm_fnd_values a
+             where a.delete_flag = '0'
+               and a.value = lcl_hm_product_apply.market_type
+               and a.value_set_id = 'MarketType';
+            if lcl_count3 = 0 then
+            
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_apply.product_code || '，市场类型' ||
+                              lcl_hm_product_apply.market_type || '不存在!';
+              else
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              ', Market Type ' ||
+                              lcl_hm_product_apply.market_type ||
+                              ' does not exists! ';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          end if;
+        
+          if lcl_hm_product_apply.mdm_brand is not null then
+            lcl_count3 := 0;
+            select count(*)
+              into lcl_count3
+              from hm_fnd_values a
+             where a.delete_flag = '0'
+               and a.value = lcl_hm_product_apply.mdm_brand
+               and a.value_set_id = 'Brand';
+            if lcl_count3 = 0 then
+            
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_apply.product_code || '，品牌' ||
+                              lcl_hm_product_apply.mdm_brand || '不存在!';
+              else
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              ', Brand ' || lcl_hm_product_apply.mdm_brand ||
+                              ' does not exists! ';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          else
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_apply.product_code || '，商标' ||
+                           
+                            '不能为空!';
+            else
+              lcl_retmsg := lcl_hm_product_apply.product_code || ', Brand ' ||
+                           
+                            ' can not be empty! ';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+        
+          if lcl_hm_product_apply.product_group_three is not null then
+            lcl_count3 := 0;
+            select count(*)
+              into lcl_count3
+              from hm_fnd_values a
+             where a.delete_flag = '0'
+               and a.value = lcl_hm_product_apply.PRODUCT_GROUP_THREE
+               and a.value_set_id = 'ProductGroupTSP';
+            if lcl_count3 = 0 then
+            
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              '，产品大类B (ForHGMS) ' ||
+                              lcl_hm_product_apply.PRODUCT_GROUP_THREE ||
+                              '不存在!';
+              else
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              ', Product Group B(HGMS) ' ||
+                              lcl_hm_product_apply.PRODUCT_GROUP_THREE ||
+                              ' does not exists! ';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          else
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            '，产品大类B (ForHGMS) ' ||
+                           
+                            '不能为空!';
+            else
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            ', Product Group B(HGMS) ' ||
+                           
+                            ' can not be empty! ';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          -----------------------------权限及元数据获取
+        
+          --看看物料在否在权限范围内
+          if lcl_mdc_flag is null then
+            select count(*), max(b.role_name)
+              into lcl_mdc_flag, lcl_role
+              from up_org_user          a,
+                   up_org_businessrole  b,
+                   up_org_user_busirole c
+             where b.role_name in ('MDCMaterial',
+                                   'SalesGroupManger',
+                                   'MRPPlantManger',
+                                   'ProductManger')
+               and c.role_id = b.role_id
+               and a.user_id = c.user_id
+               and a.user_account = lcl_hm_product_apply.created_by;
+          end if;
+        
+          if lcl_mdc_flag = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := '您没有批导权限';
+            else
+              lcl_retmsg := 'You don''t have permission for this function';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+        
+          if lcl_role = 'SalesGroupManger' then
+            --检查是HOPE贸易公司数据
+            for cur_row_hope in (select *
+                                   from hopemdm.hm_mtl_general a
+                                  where exists
+                                  (select null
+                                           from hopemdm.hm_mtl_sales_org_data b,
+                                                hm_role_splits_person         c
+                                          where c.codevalue = b.sales_group
+                                            and c.kindvalue =
+                                                'SalesOrganization'
+                                            and c.org_role =
+                                                'SalesGroupManger'
+                                            and c.psn_account =
+                                                lcl_hm_product_apply.created_by
+                                            and a.row_id = b.material_id)
+                                    and a.delete_flag = '0'
+                                    and a.material_code = lcl_material_code) loop
+              lcl_hm_mtl_general_hope := cur_row_hope;
+              lcl_hope_flag           := '1';
+              --获取英文多语言
+              select max(d.description)
+                into lcl_material_desc
+                from hopemdm.hm_mtl_desc_data d
+               where d.language = 'E'
+                 and d.material_id = lcl_hm_mtl_general_hope.row_id;
+              if lcl_material_desc is null then
+                lcl_material_desc := lcl_hm_mtl_general_hope.material_descrition;
+              end if;
+            end loop;
+            if lcl_hope_flag = '0' then
+              --检查是否印度贸易商公司数据
+              for cur_row_mdm in (select *
+                                    from haiermdm.hm_mtl_general a
+                                   where exists
+                                   (select null
+                                            from haiermdm.hm_mtl_sales_org_data b,
+                                                 hm_role_splits_person          c
+                                           where c.codevalue = b.sales_group
+                                             --and c.codevalue in ('6600','9770')
+                                             and c.kindvalue =
+                                                 'SalesOrganization'
+                                             and c.org_role =
+                                                 'SalesGroupManger'
+                                             and c.psn_account =
+                                                 lcl_hm_product_apply.created_by
+                                             and a.row_id = b.material_id)
+                                     and a.material_type = 'FERT'
+                                     and a.delete_flag = '0'
+                                     and a.material_code = lcl_material_code) loop
+                lcl_hm_mtl_general_haier := cur_row_mdm;
+                lcl_haier_flag           := '1';
+                select max(d.description)
+                  into lcl_material_desc
+                  from haiermdm.hm_mtl_desc_data d
+                 where d.language = 'E'
+                   and d.material_id = lcl_hm_mtl_general_haier.row_id;
+                if lcl_material_desc is null then
+                  lcl_material_desc := lcl_hm_mtl_general_haier.material_descrition;
+                end if;
+              end loop;
+            
+              if lcl_haier_flag = '0' then
+                --也非印度贸易公司物料，错误数据
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                '，成品不存在或者您没有销售组织权限建立';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ', Product?does not exist or?your sales organization permissions do not match. ';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            else
+              --获取Haier中的数据
+              for cur_row_haier in (select *
+                                      from haiermdm.hm_mtl_general a
+                                     where a.delete_flag = '0'
+                                       and a.material_code =
+                                           lcl_material_code) loop
+                lcl_hm_mtl_general_haier := cur_row_haier;
+                lcl_haier_flag           := '1';
+              
+              end loop;
+            end if;
+          
+          elsif lcl_role = 'MRPPlantManger' then
+            --检查工厂权限是否存在            
+            for cur_row_mdm in (select *
+                                  from haiermdm.hm_mtl_general a
+                                 where exists
+                                 (select null
+                                          from haiermdm.hm_mtl_mrp   b,
+                                               hm_role_splits_person c
+                                         where c.codevalue = b.plant_code
+                                           and c.kindvalue = 'PlantCode'
+                                           and c.org_role = 'MRPPlantManger'
+                                           and c.psn_account =
+                                               lcl_hm_product_apply.created_by
+                                           and a.row_id = b.material_id)
+                                   and a.material_type = 'FERT'
+                                   and a.delete_flag = '0'
+                                   and a.material_code = lcl_material_code) loop
+              lcl_hm_mtl_general_haier := cur_row_mdm;
+              lcl_haier_flag           := '1';
+              select max(d.description)
+                into lcl_material_desc
+                from haiermdm.hm_mtl_desc_data d
+               where d.language = 'E'
+                 and d.material_id = lcl_hm_mtl_general_haier.row_id;
+              if lcl_material_desc is null then
+                lcl_material_desc := lcl_hm_mtl_general_haier.material_descrition;
+              end if;
+            end loop;
+            if lcl_haier_flag = '0' then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              '，成品不存在或者您没有工厂权限建立';
+              else
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              ', Product?does not exist or your plant permissions do not match.';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+            --获取Hope数据
+            for cur_row_hope in (select *
+                                   from hopemdm.hm_mtl_general a
+                                  where a.delete_flag = '0'
+                                    and a.material_code = lcl_material_code) loop
+              lcl_hm_mtl_general_hope := cur_row_hope;
+              lcl_hope_flag           := '1';
+              select max(d.description)
+                into lcl_material_desc
+                from hopemdm.hm_mtl_desc_data d
+               where d.language = 'E'
+                 and d.material_id = lcl_hm_mtl_general_hope.row_id;
+              if lcl_material_desc is null then
+                lcl_material_desc := lcl_hm_mtl_general_hope.material_descrition;
+              end if;
+            end loop;
+            --获取haier数据
+            if lcl_hope_flag = '0' then
+              lcl_count1 := 0;
+              for cur_row_mdm in (select *
+                                    from haiermdm.hm_mtl_general a
+                                   where exists
+                                   (select null
+                                            from haiermdm.hm_mtl_sales_org_data b
+                                           where --and b.sales_group in ('6600','9770')
+                                             a.row_id = b.material_id)
+                                     and a.material_type = 'FERT'
+                                     and a.delete_flag = '0'
+                                     and a.material_code = lcl_material_code) loop
+                lcl_count1 := 1;
+              end loop;
+              if lcl_count1 = 0 then
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                '，不是海外成品，不允许创建';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ', Product is only for China market,not allowed to create';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            end if;
+          
+          elsif lcl_role = 'ProductManger' then
+            --产品大类权限
+            --首先Hope是否存在该成品并且在用户的权限范围内
+            for cur_row_hope in (select *
+                                   from hopemdm.hm_mtl_general a
+                                  where exists
+                                  (select null
+                                           from hm_role_splits_person c
+                                          where c.codevalue = a.department
+                                            and c.kindvalue = 'ProductGroup'
+                                            and c.org_role = 'ProductManger'
+                                            and c.psn_account =
+                                                lcl_hm_product_apply.created_by)
+                                    and a.delete_flag = '0'
+                                    and a.material_code = lcl_material_code) loop
+              lcl_hm_mtl_general_hope := cur_row_hope;
+              lcl_hope_flag           := '1';
+            end loop;
+          
+            if lcl_hope_flag = '0' then
+              --Hope不存在，看看是否是印度贸易公司数据
+              for cur_row_mdm in (select *
+                                    from haiermdm.hm_mtl_general a
+                                   where exists
+                                   (select null
+                                            from hm_role_splits_person   c,
+                                                 hm_mtl_cd_department2pg t
+                                           where c.codevalue =
+                                                 t.product_group
+                                             and t.department = a.department
+                                             and c.kindvalue = 'ProductGroup'
+                                             and c.org_role = 'ProductManger'
+                                             and c.psn_account =
+                                                 lcl_hm_product_apply.created_by)
+                                     and exists
+                                   (select null
+                                            from haiermdm.hm_mtl_sales_org_data b
+                                           --where and  b.sales_group in ('6600','9770')
+                                             where a.row_id = b.material_id)
+                                     and a.material_type = 'FERT'
+                                     and a.delete_flag = '0'
+                                     and a.material_code = lcl_material_code) loop
+                lcl_hm_mtl_general_haier := cur_row_mdm;
+                lcl_haier_flag           := '1';
+              end loop;
+              if lcl_haier_flag = '0' then
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                '，成品不存在或者您没有产品大类权限建立';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ', Product?does not exist or?your product group permissions do not match. ';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            else
+              --Hope存在，获取haier中的数据
+              for cur_row_mdm in (select *
+                                    from haiermdm.hm_mtl_general a
+                                   where a.delete_flag = '0'
+                                     and a.material_code = lcl_material_code) loop
+                lcl_hm_mtl_general_haier := cur_row_mdm;
+                lcl_haier_flag           := '1';
+              end loop;
+            end if;
+          else
+            --MDCMaterial 建立，不需要看权限，但必须是海尔物料
+            for cur_row_hope in (select *
+                                   from hopemdm.hm_mtl_general a
+                                  where a.delete_flag = '0'
+                                    and a.material_code = lcl_material_code) loop
+              lcl_hm_mtl_general_hope := cur_row_hope;
+              lcl_hope_flag           := '1';
+            end loop;
+            if lcl_hope_flag = '0' then
+              --hope不存在，检查Haier中是否是印度贸易公司数据
+              for cur_row_mdm in (select *
+                                    from haiermdm.hm_mtl_general a
+                                   where exists
+                                   (select null
+                                            from haiermdm.hm_mtl_sales_org_data b
+                                           --where b.sales_group in ('6600','9770')
+                                             where a.row_id = b.material_id)
+                                     and a.material_type = 'FERT'
+                                     and a.delete_flag = '0'
+                                     and a.material_code = lcl_material_code) loop
+                lcl_hm_mtl_general_haier := cur_row_mdm;
+                lcl_haier_flag           := '1';
+              end loop;
+              if lcl_haier_flag = '0' then
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                '不是海外成品，不允许创建';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ', Product is only for china market,not allowed to create';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            else
+              for cur_row_mdm in (select *
+                                    from haiermdm.hm_mtl_general a
+                                   where a.material_type = 'FERT'
+                                     and a.delete_flag = '0'
+                                     and a.material_code = lcl_material_code) loop
+                lcl_hm_mtl_general_haier := cur_row_mdm;
+                lcl_haier_flag           := '1';
+              end loop;
+            end if;
+          end if;
+        
+          -----------------------------------权限及数据获取完成
+        
+          if lcl_count = 0 then
+            -- spi不存在
+          
+            --字段整合
+            --lcl_hm_product_apply.description := lcl_material_desc;
+            if lcl_hope_flag = '1' then
+              --hope中存在数据
+              --以Hope为先  取消赋值，以用户批导为准
+              /*if trim(lcl_hm_product_apply.customer_material_model) is null then
+                lcl_hm_product_apply.customer_material_model := lcl_hm_mtl_general_hope.customer_material_model;
+              end if;
+              if trim(lcl_hm_product_apply.OLD_MATERIAL_NUMBER) is null then
+                lcl_hm_product_apply.OLD_MATERIAL_NUMBER := lcl_hm_mtl_general_hope.old_material_number;
+              end if;*/
+            
+              lcl_hm_product_apply.jyt                      := lcl_hm_mtl_general_hope.lab_studio;
+              lcl_hm_product_apply.product_group            := lcl_hm_mtl_general_hope.department;
+              lcl_hm_product_apply.primary_uom              := lcl_hm_mtl_general_hope.primary_uom;
+              lcl_hm_product_apply.special_technical_number := lcl_hm_mtl_general_hope.special_technical_number;
+              /*if trim(lcl_hm_product_apply.vendor) is null then
+                lcl_hm_product_apply.vendor := lcl_hm_mtl_general_hope.vender_code;
+              end if;
+              
+              if trim(lcl_hm_product_apply.color) is null then
+                lcl_hm_product_apply.color := lcl_hm_mtl_general_hope.EXT_MTL_GROUP_CODE;
+              end if;
+              
+              if trim(lcl_hm_product_apply.mdm_brand) is null then
+                lcl_hm_product_apply.mdm_brand := lcl_hm_mtl_general_hope.mdm_brand;
+                \*else
+                --检查Hope中是否存在商标
+                lcl_count2 := 0;
+                select count(*)
+                  into lcl_count2
+                  from hopemdm.hm_fnd_values a
+                 where a.value = lcl_hm_product_apply.mdm_brand
+                   and a.value_set_id = 'Brand';
+                if lcl_count2 = '0' then
+                  if in_language = 'ZH' then
+                    lcl_retmsg := lcl_hm_mtl_general_hope.material_code || '：' ||
+                                  lcl_hm_product_apply.mdm_brand || '品牌不存在';
+                  else
+                    lcl_retmsg := lcl_hm_mtl_general_hope.material_code ||
+                                  ' : ' || lcl_hm_product_apply.mdm_brand ||
+                                  ', Brand does not exist';
+                  end if;
+                  raise lcl_cotinue_exception;
+                end if;*\
+              end if;*/
+            
+            else
+              --印度贸易公司数据            
+              select max(a.jyt)
+                into lcl_jyt
+                from haiermdm.view_mtl_smb a
+               where a.material_code = lcl_material_code;
+              lcl_hm_product_apply.jyt := lcl_jyt;
+              select max(a.product_group)
+                into lcl_product_group
+                from hm_mtl_cd_department2pg a
+               where a.department = lcl_hm_mtl_general_haier.department;
+              lcl_hm_product_apply.product_group := lcl_product_group;
+            
+              if lcl_hm_mtl_general_haier.primary_uom = 'TAI' then
+                lcl_unit := 'PC';
+              elsif lcl_hm_mtl_general_haier.primary_uom = 'TAO' then
+                lcl_unit := 'SET';
+              else
+                lcl_unit := 'PC';
+              end if;
+            
+              lcl_hm_product_apply.primary_uom := lcl_unit;
+            
+              select max(special_num)
+                into lcl_hm_product_apply.special_technical_number
+                from haiermdm.hm_mtl_additional_data a
+               where a.pro_code = lcl_hm_mtl_general_haier.material_code;
+              --lcl_hm_product_apply.special_technical_number := lcl_hm_mtl_additional_data.special_num;
+            end if;
+            if lcl_haier_flag = '1' then
+              --填充haier中的字段
+              for cur_add in (select a.*
+                              
+                                from haiermdm.hm_mtl_additional_data a
+                               where a.pro_code =
+                                     lcl_hm_mtl_general_haier.material_code) loop
+                lcl_hm_mtl_additional_data := cur_add;
+                --产品部代码
+                lcl_hm_product_apply.hrbuno := lcl_hm_mtl_general_haier.hrbuno;
+                --PLM中类
+                lcl_hm_product_apply.categories_mid := lcl_hm_mtl_additional_data.categories_mid;
+                lcl_hm_product_apply.em_date_actual := lcl_hm_mtl_general_haier.em_date_actual;
+              end loop;
+            
+              --品牌  以HOPE的品牌为准，这样印度工贸的成品会没有商标
+              /*if trim(lcl_hm_product_apply.mdm_brand) is null then
+                lcl_hm_product_apply.mdm_brand := lcl_hm_mtl_additional_data.pro_band;
+              end if;*/
+              --开发类别  取消非空就赋值，以用户导入为准
+              /*if trim(lcl_hm_product_apply.development_category) is null then
+                lcl_hm_product_apply.development_category := lcl_hm_mtl_general_haier.development_category;
+              end if;
+              --母本型号
+              if trim(lcl_hm_product_apply.hrmatherprodno) is null then
+                lcl_hm_product_apply.hrmatherprodno := lcl_hm_mtl_additional_data.hrmatherprodno;
+              end if;
+              
+              --主型号 基本型号
+              if trim(lcl_hm_product_apply.BASIC_MODEL) is null then
+                lcl_hm_product_apply.BASIC_MODEL := lcl_hm_mtl_additional_data.pro_type;
+              end if;
+              
+              if trim(lcl_hm_product_apply.em_date_actual) is null then
+                lcl_hm_product_apply.em_date_actual := lcl_hm_mtl_general_haier.em_date_actual;
+              end if;*/
+            
+            end if;
+            --首先记历史
+          
+            --基本视图转化
+            lcl_hm_product_base.row_id                  := lcl_hm_product_apply.row_id;
+            lcl_hm_product_base.product_code            := lcl_material_code;
+            lcl_hm_product_base.customer_material_model := lcl_hm_product_apply.customer_material_model;
+            lcl_hm_product_base.old_material_number     := lcl_hm_product_apply.old_material_number;
+            lcl_hm_product_base.jyt                     := lcl_hm_product_apply.jyt;
+            lcl_hm_product_base.product_group           := lcl_hm_product_apply.product_group;
+            lcl_product_group                           := lcl_hm_product_apply.product_group;
+            lcl_hm_product_base.hrbuno                  := substr(lcl_hm_product_apply.hrbuno,
+                                                                  1,
+                                                                  2);
+            lcl_hm_product_base.color                   := lcl_hm_product_apply.color;
+            lcl_hm_product_base.mdm_brand               := lcl_hm_product_apply.mdm_brand;
+            lcl_hm_product_base.development_category    := lcl_hm_product_apply.development_category;
+            lcl_hm_product_base.primary_uom             := lcl_hm_product_apply.primary_uom;
+            lcl_hm_product_base.hrmatherprodno          := lcl_hm_product_apply.hrmatherprodno;
+            lcl_hm_product_base.delist                  := lcl_hm_product_apply.delist;
+     --       lcl_hm_product_base.new_product             := lcl_hm_product_apply.new_product;
+            lcl_hm_product_base.created_by              := lcl_hm_product_apply.created_by;
+            lcl_hm_product_base.created                 := sysdate;
+            lcl_hm_product_base.last_upd_by             := lcl_hm_product_apply.last_upd_by;
+            lcl_hm_product_base.last_upd                := sysdate;
+            lcl_hm_product_base.modification_num        := lcl_hm_product_apply.modification_num;
+            lcl_hm_product_base.delete_flag             := '0';
+            lcl_hm_product_base.active_flag             := '1';
+            lcl_hm_product_base.remark                  := lcl_hm_product_apply.remark;
+            lcl_hm_product_base.version                 := lcl_hm_product_apply.version;
+            lcl_hm_product_base.last_version_flag       := '2';
+            lcl_hm_product_base.operate_status          := 'CREATE';
+            lcl_hm_product_base.lock_flag               := '0';
+            lcl_hm_product_base.return_batch_id         := '';
+            lcl_hm_product_base.action_batch_id         := lcl_hm_product_apply.action_batch_id;
+            lcl_hm_product_base.for_gvs                 := '1';
+            lcl_hm_product_base.audit_flag              := '1';
+            lcl_hm_product_base.is_std_product          := '1';
+            --lcl_hm_product_base.description             := lcl_hm_product_apply.description;
+            lcl_hm_product_base.em_date_actual      := lcl_hm_product_apply.em_date_actual;
+            lcl_hm_product_base.model_manager       := lcl_hm_product_apply.model_manager;
+            lcl_hm_product_base.market_type         := lcl_hm_product_apply.market_type;
+            lcl_hm_product_base.service_type        := ''; --lcl_hm_product_apply.service_type;
+            lcl_hm_product_base.basic_model         := lcl_hm_product_apply.basic_model;
+            lcl_hm_product_base.vendor              := lcl_hm_product_apply.vendor;
+            lcl_hm_product_base.categories_mid      := lcl_hm_product_apply.categories_mid;
+            lcl_hm_product_base.product_group_three := lcl_hm_product_apply.product_group_three;
+            lcl_hm_product_base.remark              := lcl_hm_product_apply.remark;
+            --获取服务类型
+            if lcl_hm_product_base.development_category is not null and
+               lcl_hm_product_base.market_type is not null then
+              select max(service_type)
+                into lcl_hm_product_apply.service_type
+                from HM_CD_RD_MARKET_SERVICE a
+               where a.development_category =
+                     lcl_hm_product_base.development_category
+                 and a.market_type = lcl_hm_product_base.market_type;
+            end if;
+            --插入基本视图
+            insert into hm_product_base values lcl_hm_product_base;
+            --插入生产版次视图
+            lcl_version_rowid := comm_util.FUNC_NEW_ROWID;
+            insert into HM_PRODUCT_VERSION
+              (row_id,
+               PRO_CHAR,
+               MATERIAL_ID,
+               SERVICE_MODEL,
+               action_batch_id,
+               DESCRIPTION,
+               created_by,
+               target_line,
+               new_product)
+            values
+              (lcl_version_rowid,
+               substr(lcl_hm_product_apply.product_code, 10, 2),
+               lcl_hm_product_base.row_id,
+               lcl_hm_product_apply.service_model,
+               lcl_hm_product_apply.action_batch_id,
+               lcl_hm_product_apply.DESCRIPTION,
+               lcl_hm_product_apply.created_by,
+               lcl_hm_product_apply.target_line,
+               lcl_hm_product_apply.new_product
+               );
+          else
+            --更新基本视图
+            insert into hm_product_base_his
+              select * from hm_product_base a where a.row_id = lcl_rowid;
+          
+            --计算服务类型
+            if lcl_hm_product_apply.development_category is not null and
+               lcl_hm_product_apply.market_type is not null then
+            
+              select max(service_type)
+                into lcl_hm_product_apply.service_type
+                from HM_CD_RD_MARKET_SERVICE a
+               where a.development_category =
+                     lcl_hm_product_apply.development_category
+                 and a.market_type = lcl_hm_product_apply.market_type;
+            
+            end if;
+          
+            update hm_product_base a
+               set CUSTOMER_MATERIAL_MODEL = lcl_hm_product_apply.CUSTOMER_MATERIAL_MODEL,
+                   OLD_MATERIAL_NUMBER     = lcl_hm_product_apply.OLD_MATERIAL_NUMBER,
+                   COLOR                   = lcl_hm_product_apply.COLOR,
+                   MDM_BRAND               = lcl_hm_product_apply.MDM_BRAND,
+                   DEVELOPMENT_CATEGORY    = lcl_hm_product_apply.DEVELOPMENT_CATEGORY,
+                   HRMATHERPRODNO          = lcl_hm_product_apply.HRMATHERPRODNO,
+                   --DESCRIPTION             = lcl_hm_product_apply.DESCRIPTION,
+                   EM_DATE_ACTUAL      = lcl_hm_product_apply.EM_DATE_ACTUAL,
+                   MODEL_MANAGER       = lcl_hm_product_apply.MODEL_MANAGER,
+                   MARKET_TYPE         = lcl_hm_product_apply.MARKET_TYPE,
+                   SERVICE_TYPE        = lcl_hm_product_apply.SERVICE_TYPE,
+                   BASIC_MODEL         = lcl_hm_product_apply.BASIC_MODEL,
+                   product_group_three = lcl_hm_product_apply.product_group_three,
+                   LAST_UPD_BY         = lcl_hm_product_apply.CREATED_BY,
+                   LAST_UPD            = sysdate,
+                   LAST_VERSION_FLAG   = '2',
+                   OPERATE_STATUS      = DECODE(OPERATE_STATUS,
+                                                'CREATE',
+                                                'CREATE',
+                                                'UPDATE'),
+                   ACTION_BATCH_ID     = in_action_batch_id
+             where a.row_id = lcl_rowid;
+            --增加生产版次视图   
+            lcl_version_rowid := comm_util.FUNC_NEW_ROWID;
+            insert into HM_PRODUCT_VERSION
+              (row_id,
+               PRO_CHAR,
+               MATERIAL_ID,
+               SERVICE_MODEL,
+               action_batch_id,
+               created_by,
+               DESCRIPTION,
+               target_line)
+            values
+              (lcl_version_rowid,
+               substr(lcl_hm_product_apply.product_code, 10, 2),
+               lcl_rowid,
+               lcl_hm_product_apply.service_model,
+               lcl_hm_product_apply.action_batch_id,
+               lcl_hm_product_apply.created_by,
+               lcl_hm_product_apply.DESCRIPTION,
+               lcl_hm_product_apply.target_line);
+          end if;
+          ---20131212 因为工厂需要设定主生产工厂，销售组织需要设定国家，所以工厂和销售组织不再
+          --自动生成，改为由用户手工批导工厂和销售组织视图
+          --准备生产工厂视图
+          /*if lcl_haier_flag = '1' then
+            for cur_mrp in (select a.plant_code
+                              from haiermdm.hm_mtl_mrp a
+                             where exists
+                             (select null --加产品大类过滤
+                                      from hm_plant_product_group c,
+                                           hm_plant               b
+                                     where c.product_group_code =
+                                           lcl_product_group
+                                       and c.material_id = b.row_id
+                                       and b.plant_code = a.plant_code)
+                               and a.material_id =
+                                   lcl_hm_mtl_general_haier.row_id) loop
+              insert into hm_product_pl_fact
+                (row_id,
+                 production_department,
+                 material_id,
+                 action_batch_id,
+                 created_by)
+              values
+                (comm_util.FUNC_NEW_ROWID,
+                 cur_mrp.plant_code,
+                 lcl_version_rowid,
+                 lcl_hm_product_apply.action_batch_id,
+                 lcl_hm_product_apply.created_by);
+            end loop;
+          end if;
+          --销售组织视图
+          for cur_sales in (select a.sales_group
+                              from haiermdm.hm_mtl_sales_org_data a
+                             where a.sales_group = '6600'
+                               and a.material_id =
+                                   lcl_hm_mtl_general_haier.row_id
+                            union
+                            select a.sales_group
+                              from hopemdm.hm_mtl_sales_org_data a
+                             where exists
+                             (select null
+                                      from hm_product_customer b
+                                     where b.company_type = 'OTC'
+                                       and b.company_code = a.sales_group) --必须是spi已配置销售组织
+                               and a.material_id =
+                                   lcl_hm_mtl_general_hope.row_id) loop
+            insert into hm_product_sales_org_data
+              (row_id,
+               SALES_GROUP,
+               material_id,
+               action_batch_id,
+               created_by)
+            values
+              (comm_util.FUNC_NEW_ROWID,
+               cur_sales.sales_group,
+               lcl_version_rowid,
+               lcl_hm_product_apply.action_batch_id,
+               lcl_hm_product_apply.created_by);
+          end loop;*/
+          lcl_rows_finish := lcl_rows_finish + 1;
+        
+          update hm_action_batch_item a
+             set a.success_flag = '1',
+                 remark         = 'Product code ' ||
+                                  lcl_hm_product_apply.product_code ||
+                                  ' create successful'
+           where master_row_id = lcl_hm_product_apply.row_id
+             and action_batch_id = in_action_batch_id;
+        exception
+          when lcl_cotinue_exception then
+            UPDATE hm_action_batch_item
+               SET success_flag = '0', remark = lcl_retmsg
+             WHERE action_batch_id = in_action_batch_id
+               AND master_row_id = cur_row.row_id;
+        end;
+      end loop;
+      --retcode := 'S';
+      --retmsg  := 'Product import :' || lcl_rows_finish || '/' || lcl_rows;
+    
+      --lcl_rows_finish := lcl_rows_finish + 1;
+    
+      /*when lcl_cotinue_exception then
+      UPDATE hm_action_batch_item
+         SET success_flag = '0', remark = lcl_retmsg
+       WHERE action_batch_id = in_action_batch_id
+         AND master_row_id = cur_row.row_id;*/
+      --end;
+      --end loop;
+    
+      --end loop;
+      retcode := 'S';
+      retmsg  := 'Product import :' || lcl_rows_finish || '/' || lcl_rows;
+    elsif in_table_name = 'HM_PRODUCT_BASE' then
+      for cur_row in (select *
+                        from hm_product_apply a
+                       where a.action_batch_id = in_action_batch_id) loop
+        begin
+          lcl_rows             := lcl_rows + 1;
+          lcl_count            := 0;
+          lcl_hm_product_apply := cur_row;
+          lcl_count2           := 0;
+          ---针对历史数据做特殊处理，很多历史数据并不是标准的11位编码，只能采取特别的处理方式
+          --把所有的编码都放在基本视图的物料编码位置，生产版次编码为空，这种数据在基本视图加上
+          --字段is_std_product 为1是正常数据，为0是需要特殊处理
+          select count(*), max(is_std_product)
+            into lcl_count, lcl_is_std_product
+            from view_product_base a
+           where a.delete_flag = '0'
+             and a.product_code = lcl_hm_product_apply.product_code;
+          if lcl_count = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            '，编码不存在，无法修改';
+            else
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            ', Product?does not exist,can not be modified';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          if lcl_is_std_product = '1' then
+            lcl_material_code := substr(lcl_hm_product_apply.product_code,
+                                        1,
+                                        9);
+            lcl_version       := substr(lcl_hm_product_apply.product_code,
+                                        10,
+                                        2);
+          else
+            lcl_material_code := lcl_hm_product_apply.product_code;
+            lcl_version       := '';
+          end if;
+        
+          select count(*),
+                 max(row_id),
+                 max(service_type),
+                 max(market_type),
+                 max(development_category)
+            into lcl_count,
+                 lcl_rowid,
+                 lcl_service_type,
+                 lcl_markrt_type,
+                 lcl_development_category
+            from hm_product_base a
+           where a.product_code = lcl_material_code;
+          if lcl_count = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            '，编码不存在，无法修改';
+            else
+              lcl_retmsg := lcl_hm_product_apply.product_code ||
+                            ', Product?does not exist,can not be modified';
+            end if;
+            raise lcl_cotinue_exception;
+          else
+            if lcl_is_std_product = '1' then
+              select count(*), max(row_id)
+                into lcl_count2, lcl_version_rowid
+                from HM_PRODUCT_VERSION b
+               where b.pro_char = lcl_version
+                 and b.material_id = lcl_rowid;
+            
+            else
+              select count(*), max(row_id)
+                into lcl_count2, lcl_version_rowid
+                from HM_PRODUCT_VERSION b
+               where b.pro_char is null
+                 and b.material_id = lcl_rowid;
+            
+            end if;
+            if lcl_count2 = 0 then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              '，编码不存在，无法修改';
+              else
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              ', Product?does not exist,can not be modified';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+            --------------------------------字段校验
+          
+            if INSTR(IN_COLUMN_NAME, 'DEVELOPMENT_CATEGORY') > 0 then
+              lcl_count := 0;
+              select count(*)
+                into lcl_count
+                from hm_fnd_values a
+               where a.delete_flag = '0'
+                 and a.value = lcl_hm_product_apply.development_category
+                 and a.value_set_id = 'DevelopType';
+              if lcl_count = 0 then
+              
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                '，开发类型' ||
+                                lcl_hm_product_apply.development_category ||
+                                '不存在!';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ', Develop Type ' ||
+                                lcl_hm_product_apply.development_category ||
+                                ' does not exists! ';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+              lcl_development_category := lcl_hm_product_apply.development_category;
+            end if;
+          
+            if INSTR(IN_COLUMN_NAME, 'MARKET_TYPE') > 0 then
+              lcl_count := 0;
+              select count(*)
+                into lcl_count
+                from hm_fnd_values a
+               where a.delete_flag = '0'
+                 and a.value = lcl_hm_product_apply.market_type
+                 and a.value_set_id = 'MarketType';
+              if lcl_count = 0 then
+              
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                '，市场类型' || lcl_hm_product_apply.market_type ||
+                                '不存在!';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ', Market Type ' ||
+                                lcl_hm_product_apply.market_type ||
+                                ' does not exists! ';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+              lcl_markrt_type := lcl_hm_product_apply.market_type;
+            end if;
+          
+            if INSTR(IN_COLUMN_NAME, 'MDM_BRAND') > 0 then
+              lcl_count := 0;
+              select count(*)
+                into lcl_count
+                from hm_fnd_values a
+               where a.delete_flag = '0'
+                 and a.value = lcl_hm_product_apply.mdm_brand
+                 and a.value_set_id = 'Brand';
+              if lcl_count = 0 then
+              
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code || '，品牌' ||
+                                lcl_hm_product_apply.mdm_brand || '不存在!';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ', Brand ' ||
+                                lcl_hm_product_apply.mdm_brand ||
+                                ' does not exists! ';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            
+            end if;
+          
+            if INSTR(IN_COLUMN_NAME, 'PRODUCT_GROUP_THREE') > 0 then
+              lcl_count := 0;
+              select count(*)
+                into lcl_count
+                from hm_fnd_values a
+               where a.delete_flag = '0'
+                 and a.value = lcl_hm_product_apply.PRODUCT_GROUP_THREE
+                 and a.value_set_id = 'ProductGroupTSP';
+              if lcl_count = 0 then
+              
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                '，产品大类B (ForHGMS) ' ||
+                                lcl_hm_product_apply.PRODUCT_GROUP_THREE ||
+                                '不存在!';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ', Product Group B(HGMS) ' ||
+                                lcl_hm_product_apply.PRODUCT_GROUP_THREE ||
+                                ' does not exists! ';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            
+            end if;
+          
+            ----------------------权限排查------------------------------
+            --看看物料在否在权限范围内
+            if lcl_mdc_flag is null then
+              select count(*), max(b.role_name)
+                into lcl_mdc_flag, lcl_role
+                from up_org_user          a,
+                     up_org_businessrole  b,
+                     up_org_user_busirole c
+               where b.role_name in ('MDCMaterial',
+                                     'SalesGroupManger',
+                                     'MRPPlantManger',
+                                     'ProductManger')
+                 and c.role_id = b.role_id
+                 and a.user_id = c.user_id
+                 and a.user_account = lcl_hm_product_apply.created_by;
+            end if;
+          
+            if lcl_mdc_flag = 0 then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              '， 成品不在权限范围内';
+              else
+                lcl_retmsg := lcl_hm_product_apply.product_code ||
+                              ', product is not in your permission limit';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          
+            if lcl_role = 'SalesGroupManger' then
+              --检查成品是否有权限范围内的销售组织
+              select count(*)
+                into lcl_count
+                from hm_product_version a
+               where exists
+               (select null
+                        from hm_product_sales_org_data b,
+                             hm_role_splits_person     c
+                       where c.codevalue = b.sales_group
+                         and c.kindvalue = 'SalesOrganization'
+                         and c.org_role = 'SalesGroupManger'
+                         and c.psn_account = lcl_hm_product_apply.created_by
+                         and a.row_id = b.material_id)
+                 and a.delete_flag = '0'
+                 and a.row_id = lcl_version_rowid;
+            
+              if lcl_count = '0' then
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                '，成品不在权限范围内';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ', product is not in your permission limit';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            
+            elsif lcl_role = 'MRPPlantManger' then
+              --检查工厂权限是否存在            
+              select count(*)
+                into lcl_count
+                from hm_product_version a
+               where exists
+               (select null
+                        from hm_product_pl_fact b, hm_role_splits_person c
+                       where c.codevalue = b.production_department
+                         and c.kindvalue = 'PlantCode'
+                         and c.org_role = 'MRPPlantManger'
+                         and c.psn_account = lcl_hm_product_apply.created_by
+                         and a.row_id = b.material_id)
+                 and a.delete_flag = '0'
+                 and a.row_id = lcl_version_rowid;
+            
+              if lcl_count = '0' then
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                '，成品不在权限范围内';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ',  product is not in your permission limit';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            
+            elsif lcl_role = 'ProductManger' then
+              --产品大类权限
+              select count(*)
+                into lcl_count
+                from hm_product_base a
+               where exists
+               (select null
+                        from hm_role_splits_person c
+                       where c.codevalue = a.product_group
+                         and c.kindvalue = 'ProductGroup'
+                         and c.org_role = 'ProductManger'
+                         and c.psn_account = lcl_hm_product_apply.created_by)
+                 and a.delete_flag = '0'
+                 and a.row_id = lcl_rowid;
+            
+              if lcl_count = '0' then
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                '，成品不在权限范围内';
+                else
+                  lcl_retmsg := lcl_hm_product_apply.product_code ||
+                                ',  product is not in your permission limit';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            else
+              --MDCMaterial 建立，不需要看权限
+              null;
+            end if;
+            ----------------------权限排查结束------------------------------------------- 
+            if in_column_name is not null then
+              --计算服务类型
+              if INSTR(IN_COLUMN_NAME, 'DEVELOPMENT_CATEGORY') > 0 or
+                 INSTR(IN_COLUMN_NAME, 'MARKET_TYPE') > 0 then
+                select max(service_type)
+                  into lcl_service_type
+                  from HM_CD_RD_MARKET_SERVICE a
+                 where a.development_category = lcl_development_category
+                   and a.market_type = lcl_markrt_type;
+              end if;
+              --更新涉及到基本视图
+              if (INSTR(IN_COLUMN_NAME, 'SERVICE_MODEL') = 0 and
+                 INSTR(IN_COLUMN_NAME, 'DESCRIPTION') = 0) or
+                 (IN_COLUMN_NAME != 'SERVICE_MODEL' || '|' || 'DESCRIPTION' and
+                 IN_COLUMN_NAME != 'DESCRIPTION' || '|' || 'SERVICE_MODEL' and
+                 IN_COLUMN_NAME != 'DESCRIPTION' and
+                 IN_COLUMN_NAME != 'SERVICE_MODEL') then
+              
+                insert into hm_product_base_his
+                  select *
+                    from hm_product_base a
+                   where a.row_id = lcl_rowid;
+              
+                update hm_product_base a
+                   set CUSTOMER_MATERIAL_MODEL = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                                   'CUSTOMER_MATERIAL_MODEL')),
+                                                        1,
+                                                        lcl_hm_product_apply.CUSTOMER_MATERIAL_MODEL,
+                                                        CUSTOMER_MATERIAL_MODEL),
+                       OLD_MATERIAL_NUMBER     = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                                   'OLD_MATERIAL_NUMBER')),
+                                                        1,
+                                                        lcl_hm_product_apply.OLD_MATERIAL_NUMBER,
+                                                        OLD_MATERIAL_NUMBER),
+                       COLOR                   = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                                   'COLOR')),
+                                                        1,
+                                                        lcl_hm_product_apply.COLOR,
+                                                        COLOR),
+                       MDM_BRAND               = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                                   'MDM_BRAND')),
+                                                        1,
+                                                        lcl_hm_product_apply.MDM_BRAND,
+                                                        MDM_BRAND),
+                       DEVELOPMENT_CATEGORY    = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                                   'DEVELOPMENT_CATEGORY')),
+                                                        1,
+                                                        lcl_hm_product_apply.DEVELOPMENT_CATEGORY,
+                                                        DEVELOPMENT_CATEGORY),
+                       HRMATHERPRODNO          = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                                   'HRMATHERPRODNO')),
+                                                        1,
+                                                        lcl_hm_product_apply.HRMATHERPRODNO,
+                                                        HRMATHERPRODNO),
+                       /*DESCRIPTION             = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                  'DESCRIPTION')),
+                       1,
+                       lcl_hm_product_apply.DESCRIPTION,
+                       DESCRIPTION),*/
+                       EM_DATE_ACTUAL      = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                               'EM_DATE_ACTUAL')),
+                                                    1,
+                                                    lcl_hm_product_apply.EM_DATE_ACTUAL,
+                                                    EM_DATE_ACTUAL),
+                       MODEL_MANAGER       = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                               'MODEL_MANAGER')),
+                                                    1,
+                                                    lcl_hm_product_apply.MODEL_MANAGER,
+                                                    MODEL_MANAGER),
+                       MARKET_TYPE         = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                               'MARKET_TYPE')),
+                                                    1,
+                                                    lcl_hm_product_apply.MARKET_TYPE,
+                                                    MARKET_TYPE),
+                       SERVICE_TYPE        = lcl_service_type,
+                       BASIC_MODEL         = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                               'BASIC_MODEL')),
+                                                    1,
+                                                    lcl_hm_product_apply.BASIC_MODEL,
+                                                    BASIC_MODEL),
+                       VENDOR              = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                               'VENDOR')),
+                                                    1,
+                                                    lcl_hm_product_apply.VENDOR,
+                                                    VENDOR),
+                       PRODUCT_GROUP_THREE = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                               'PRODUCT_GROUP_THREE')),
+                                                    1,
+                                                    lcl_hm_product_apply.PRODUCT_GROUP_THREE,
+                                                    PRODUCT_GROUP_THREE),
+                       LAST_UPD_BY         = lcl_hm_product_apply.CREATED_BY,
+                       LAST_UPD            = sysdate,
+                       LAST_VERSION_FLAG   = '2',
+                       OPERATE_STATUS      = DECODE(OPERATE_STATUS,
+                                                    'CREATE',
+                                                    'CREATE',
+                                                    'UPDATE'),
+                       ACTION_BATCH_ID     = in_action_batch_id
+                 where a.row_id = lcl_rowid;
+              end if;
+              if INSTR(IN_COLUMN_NAME, 'SERVICE_MODEL') > 0 or
+                 INSTR(IN_COLUMN_NAME, 'DESCRIPTION') > 0 or
+                 INSTR(IN_COLUMN_NAME, 'TARGET_LINE') > 0
+                 then
+                insert into HM_PRODUCT_VERSION_his
+                  select *
+                    from HM_PRODUCT_VERSION a
+                   where a.row_id = lcl_version_rowid;
+                update HM_PRODUCT_VERSION a
+                   set DESCRIPTION       = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                             'DESCRIPTION')),
+                                                  1,
+                                                  lcl_hm_product_apply.DESCRIPTION,
+                                                  DESCRIPTION),
+                       SERVICE_MODEL     = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                             'SERVICE_MODEL')),
+                                                  1,
+                                                  lcl_hm_product_apply.service_model,
+                                                  SERVICE_MODEL),
+                       TARGET_LINE      = DECODE(SIGN(INSTR(IN_COLUMN_NAME,
+                                                             'TARGET_LINE')),
+                                                  1,
+                                                  lcl_hm_product_apply.target_line,
+                                                  TARGET_LINE),
+                       LAST_UPD_BY       = lcl_hm_product_apply.CREATED_BY,
+                       LAST_UPD          = sysdate,
+                       LAST_VERSION_FLAG = '2',
+                       OPERATE_STATUS    = DECODE(OPERATE_STATUS,
+                                                  'CREATE',
+                                                  'CREATE',
+                                                  'UPDATE'),
+                       ACTION_BATCH_ID   = in_action_batch_id
+                 where a.row_id = lcl_version_rowid;
+              end if;
+            end if;
+          
+            lcl_rows_finish := lcl_rows_finish + 1;
+          
+            update hm_action_batch_item a
+               set a.success_flag = '1',
+                   remark         = lcl_hm_product_apply.product_code ||
+                                    ' update successful'
+             where master_row_id = lcl_hm_product_apply.row_id
+               and action_batch_id = in_action_batch_id;
+          end if;
+        exception
+          when lcl_cotinue_exception then
+            UPDATE hm_action_batch_item
+               SET success_flag = '0', remark = lcl_retmsg
+             WHERE action_batch_id = in_action_batch_id
+               AND master_row_id = cur_row.row_id;
+        end;
+      end loop;
+      retcode := 'S';
+      retmsg  := 'Material import :' || lcl_rows_finish || '/' || lcl_rows;
+    elsif in_table_name = 'HM_PRODUCT_PL_FACT' then
+      --工厂视图的批导  
+      for cur_row in (select *
+                        from hm_product_pl_fact_imp a
+                       where a.action_batch_id = in_action_batch_id) loop
+        begin
+          lcl_rows               := lcl_rows + 1;
+          lcl_count              := 0;
+          lcl_count2             := 0;
+          lcl_hm_product_pl_fact := cur_row;
+          if lcl_hm_product_pl_fact.priority_factory is not null and
+             lcl_hm_product_pl_fact.priority_factory not in ('0', '1') then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                            lcl_hm_product_pl_fact.production_department ||
+                            '，主工厂标示' ||
+                            lcl_hm_product_pl_fact.priority_factory ||
+                            '不存在!';
+            else
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                            lcl_hm_product_pl_fact.production_department ||
+                            '，priority factory flag ' ||
+                            lcl_hm_product_pl_fact.priority_factory ||
+                            ' does not exists! ';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          if lcl_hm_product_pl_fact.priority_factory is null then
+            lcl_hm_product_pl_fact.priority_factory := '0';
+          end if;
+          ---针对历史数据做特殊处理，很多历史数据并不是标准的11位编码，只能采取特别的处理方式
+          --把所有的编码都放在基本视图的物料编码位置，生产版次编码为空，这种数据在基本视图加上
+          --字段is_std_product 为1是正常数据，为0是需要特殊处理
+          select count(*), max(is_std_product)
+            into lcl_count, lcl_is_std_product
+            from view_product_base a
+           where a.delete_flag = '0'
+             and a.product_code = lcl_hm_product_pl_fact.material_id;
+          if lcl_count = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id ||
+                            '，编码不存在，无法修改';
+            else
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id ||
+                            ', Product?does not exist,can not be modified';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          if lcl_is_std_product = '1' then
+            lcl_material_code := substr(lcl_hm_product_pl_fact.material_id,
+                                        1,
+                                        9);
+            lcl_version       := substr(lcl_hm_product_pl_fact.material_id,
+                                        10,
+                                        2);
+          else
+            lcl_material_code := lcl_hm_product_pl_fact.material_id;
+            lcl_version       := '';
+          end if;
+        
+          select count(*), max(row_id), max(product_group)
+            into lcl_count, lcl_rowid, lcl_product_group
+            from hm_product_base a
+           where a.product_code = lcl_material_code;
+          if lcl_count = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                            lcl_hm_product_pl_fact.production_department ||
+                            '，成品不存在';
+            else
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                            lcl_hm_product_pl_fact.production_department ||
+                            ', Product does not exist';
+            end if;
+            raise lcl_cotinue_exception;
+          else
+            if lcl_is_std_product = '1' then
+              select count(*), max(row_id)
+                into lcl_count2, lcl_version_rowid
+                from HM_PRODUCT_VERSION b
+               where b.pro_char = lcl_version
+                 and b.material_id = lcl_rowid;
+            else
+              select count(*), max(row_id)
+                into lcl_count2, lcl_version_rowid
+                from HM_PRODUCT_VERSION b
+               where b.pro_char is null
+                 and b.material_id = lcl_rowid;
+            
+            end if;
+            if lcl_count2 = 0 then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                              lcl_hm_product_pl_fact.production_department ||
+                              '，成品不存在';
+              else
+                lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                              lcl_hm_product_pl_fact.production_department ||
+                              ', Product does not exist';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          end if;
+          lcl_count := 0;
+          select count(*)
+            into lcl_count
+            from hm_fnd_values a
+           where a.value = lcl_hm_product_pl_fact.production_department
+             and a.value_set_id = 'PlantCode';
+          if lcl_count = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                            lcl_hm_product_pl_fact.production_department ||
+                            '，工厂编码不存在，无法增加';
+            else
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                            lcl_hm_product_pl_fact.production_department ||
+                            ', Factory code does not exist,you can not create';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          --检查工厂是否有大类权限
+          lcl_count := 0;
+          select count(*)
+            into lcl_count
+            from hm_plant_product_group a, hm_plant b
+           where a.product_group_code = lcl_product_group
+             and a.material_id = b.row_id
+             and b.plant_code =
+                 lcl_hm_product_pl_fact.production_department;
+        
+          if lcl_count = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                            lcl_hm_product_pl_fact.production_department ||
+                            '下没有产品大类' || lcl_product_group || '，无法新建';
+            else
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                            lcl_hm_product_pl_fact.production_department ||
+                            ', product group' || lcl_product_group ||
+                            ' does not  exists, you can not create';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          --检查工厂是否存在 有删除标记的限制
+          /*lcl_count := 0;
+          select count(*)
+            into lcl_count
+            from hm_product_pl_fact a
+           where a.delete_flag = '0'
+             and a.production_department =
+                 lcl_hm_product_pl_fact.production_department
+             and a.material_id = lcl_version_rowid;
+          if lcl_count > 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                            lcl_hm_product_pl_fact.production_department ||
+                            '，工厂已经存在，无法再次新建';
+            else
+              lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                            lcl_hm_product_pl_fact.production_department ||
+                            ', Plant already exists, you can not create';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;*/
+        
+          --看看物料在否在权限范围内
+          if lcl_mdc_flag is null then
+            select count(*), max(b.role_name)
+              into lcl_mdc_flag, lcl_role
+              from up_org_user          a,
+                   up_org_businessrole  b,
+                   up_org_user_busirole c
+             where b.role_name in ('MDCMaterial',
+                                   'SalesGroupManger',
+                                   'MRPPlantManger',
+                                   'ProductManger')
+               and c.role_id = b.role_id
+               and a.user_id = c.user_id
+               and a.user_account = lcl_hm_product_pl_fact.created_by;
+          end if;
+        
+          if lcl_mdc_flag = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := '您没有批导权限';
+            else
+              lcl_retmsg := 'You don''t have permission for this function';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          ----------------------权限排查------------------------------
+          --看看物料在否在权限范围内
+          if lcl_role = 'SalesGroupManger' then
+            --检查成品是否有权限范围内的销售组织
+            select count(*)
+              into lcl_count
+              from hm_product_version a
+             where exists
+             (select null
+                      from hm_product_sales_org_data b,
+                           hm_role_splits_person     c
+                     where c.codevalue = b.sales_group
+                       and c.kindvalue = 'SalesOrganization'
+                       and c.org_role = 'SalesGroupManger'
+                       and c.psn_account = lcl_hm_product_pl_fact.created_by
+                       and a.row_id = b.material_id)
+               and a.delete_flag = '0'
+               and a.row_id = lcl_version_rowid;
+          
+            if lcl_count = '0' then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                              lcl_hm_product_pl_fact.production_department ||
+                              '，成品不在权限范围内';
+              else
+                lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                              lcl_hm_product_pl_fact.production_department ||
+                              ', product is not in your permission limit';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          
+          elsif lcl_role = 'MRPPlantManger' then
+            --检查工厂权限是否存在            
+            select count(*)
+              into lcl_count
+              from hm_role_splits_person c
+             where c.codevalue =
+                   lcl_hm_product_pl_fact.production_department
+               and c.kindvalue = 'PlantCode'
+               and c.org_role = 'MRPPlantManger'
+               and c.delete_flag = '0'
+               and c.psn_account = lcl_hm_product_pl_fact.created_by;
+          
+            if lcl_count = '0' then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                              lcl_hm_product_pl_fact.production_department ||
+                              '，成品不在权限范围内';
+              else
+                lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                              lcl_hm_product_pl_fact.production_department ||
+                              ', product is not in your permission limit';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          
+          elsif lcl_role = 'ProductManger' then
+            --产品大类权限
+            select count(*)
+              into lcl_count
+              from hm_product_base a
+             where exists
+             (select null
+                      from hm_role_splits_person c
+                     where c.codevalue = a.product_group
+                       and c.kindvalue = 'ProductGroup'
+                       and c.org_role = 'ProductManger'
+                       and c.delete_flag = '0'
+                       and c.psn_account = lcl_hm_product_pl_fact.created_by)
+               and a.delete_flag = '0'
+               and a.row_id = lcl_rowid;
+          
+            if lcl_count = '0' then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                              lcl_hm_product_pl_fact.production_department ||
+                              '，成品不在权限范围内';
+              else
+                lcl_retmsg := lcl_hm_product_pl_fact.material_id || '  ' ||
+                              lcl_hm_product_pl_fact.production_department ||
+                              ', product is not in your permission limit';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          else
+            --MDCMaterial 建立，不需要看权限
+            null;
+          end if;
+          ----------------------权限排查结束------------------------------------------- 
+          --开始批导---
+          ---检验是否有数据并且删除标记为1
+          /*lcl_count := 0;
+          select count(*)
+            into lcl_count
+            from hm_product_pl_fact a
+           where a.delete_flag = '1'
+             and a.production_department =
+                 lcl_hm_product_pl_fact.production_department
+             and a.material_id = lcl_version_rowid;
+          
+          if lcl_count = '0' then
+            --表中不存在--
+            insert into hm_product_pl_fact
+              (row_id, production_department, material_id, created_by)
+            values
+              (lcl_hm_product_pl_fact.row_id,
+               lcl_hm_product_pl_fact.production_department,
+               lcl_version_rowid,
+               lcl_hm_product_pl_fact.created_by);
+          else
+            --表中存在 且删除标记为1--
+            insert into hm_product_pl_fact_his
+              select *
+                from hm_product_pl_fact hppf
+               where hppf.material_id = lcl_version_rowid
+                 and hppf.production_department =
+                     lcl_hm_product_pl_fact.production_department;
+          
+            update hm_product_pl_fact hppf
+               set hppf.delete_flag = '0',
+                   hppf.last_upd_by = lcl_hm_product_pl_fact.created_by,
+                   hppf.last_upd    = sysdate
+             where hppf.material_id = lcl_version_rowid
+               and hppf.production_department =
+                   lcl_hm_product_pl_fact.production_department;
+          end if;*/
+          lcl_count := 0;
+          select count(*)
+            into lcl_count
+            from hm_product_pl_fact a
+           where a.production_department =
+                 lcl_hm_product_pl_fact.production_department
+             and a.material_id = lcl_version_rowid;
+          if lcl_count > 0 then
+            --已经存在，更新处理
+            --当前工厂为主生产工厂
+            if lcl_hm_product_pl_fact.priority_factory = '1' then
+              insert into hm_product_pl_fact_his
+                select *
+                  from hm_product_pl_fact a
+                 where a.production_department !=
+                       lcl_hm_product_pl_fact.production_department
+                   and a.delete_flag = '0'
+                   and a.priority_factory = '1'
+                   and a.material_id = lcl_version_rowid;
+              if sql%rowcount > 0 then
+                --以前
+                update hm_product_pl_fact a
+                   set a.last_upd_by      = lcl_hm_product_pl_fact.created_by,
+                       a.last_upd         = sysdate,
+                       a.priority_factory = '0'
+                 where a.production_department !=
+                       lcl_hm_product_pl_fact.production_department
+                   and a.delete_flag = '0'
+                   and a.priority_factory = '1'
+                   and a.material_id = lcl_version_rowid;
+              end if;
+            
+              insert into hm_product_pl_fact_his
+                select *
+                  from hm_product_pl_fact a
+                 where a.production_department =
+                       lcl_hm_product_pl_fact.production_department
+                   and a.material_id = lcl_version_rowid;
+            
+              update hm_product_pl_fact a
+                 set a.last_upd_by      = lcl_hm_product_pl_fact.created_by,
+                     a.last_upd         = sysdate,
+                     a.delete_flag      = '0',
+                     a.action_batch_id  = lcl_hm_product_pl_fact.action_batch_id,
+                     a.priority_factory = '1'
+               where a.production_department =
+                     lcl_hm_product_pl_fact.production_department
+                 and a.material_id = lcl_version_rowid;
+            else
+              lcl_count1 := 0;
+              select count(*)
+                into lcl_count1
+                from hm_product_pl_fact a
+               where a.priority_factory = '1'
+                 and a.delete_flag = '0'
+                 and a.production_department !=
+                     lcl_hm_product_pl_fact.production_department
+                 and a.material_id = lcl_version_rowid;
+            
+              if lcl_count1 = 0 then
+                --当前没有工厂是主工厂，必须把当前的默认成主工厂，防止误操作
+                lcl_hm_product_pl_fact.priority_factory := '1';
+              end if;
+            
+              insert into hm_product_pl_fact_his
+                select *
+                  from hm_product_pl_fact a
+                 where a.production_department =
+                       lcl_hm_product_pl_fact.production_department
+                   and a.material_id = lcl_version_rowid;
+            
+              update hm_product_pl_fact a
+                 set a.last_upd_by      = lcl_hm_product_pl_fact.created_by,
+                     a.last_upd         = sysdate,
+                     a.delete_flag      = '0',
+                     a.action_batch_id  = lcl_hm_product_pl_fact.action_batch_id,
+                     a.priority_factory = lcl_hm_product_pl_fact.priority_factory
+               where a.production_department =
+                     lcl_hm_product_pl_fact.production_department
+                 and a.material_id = lcl_version_rowid;
+            end if;
+          else
+            --新建
+            --当前工厂为主生产工厂
+            if lcl_hm_product_pl_fact.priority_factory = '1' then
+              insert into hm_product_pl_fact_his
+                select *
+                  from hm_product_pl_fact a
+                 where a.delete_flag = '0'
+                   and a.priority_factory = '1'
+                   and a.material_id = lcl_version_rowid;
+              if sql%rowcount > 0 then
+                --以前
+                update hm_product_pl_fact a
+                   set a.last_upd_by      = lcl_hm_product_pl_fact.created_by,
+                       a.last_upd         = sysdate,
+                       a.priority_factory = '0'
+                 where a.delete_flag = '0'
+                   and a.priority_factory = '1'
+                   and a.material_id = lcl_version_rowid;
+              end if;
+              insert into hm_product_pl_fact
+                (row_id,
+                 production_department,
+                 material_id,
+                 created_by,
+                 priority_factory,
+                 action_batch_id)
+              values
+                (lcl_hm_product_pl_fact.row_id,
+                 lcl_hm_product_pl_fact.production_department,
+                 lcl_version_rowid,
+                 lcl_hm_product_pl_fact.created_by,
+                 '1',
+                 lcl_hm_product_pl_fact.action_batch_id);
+            else
+              lcl_count1 := 0;
+              select count(*)
+                into lcl_count1
+                from hm_product_pl_fact a
+               where a.priority_factory = '1'
+                 and a.delete_flag = '0'
+                 and a.material_id = lcl_version_rowid;
+            
+              if lcl_count1 = 0 then
+                --当前没有工厂是主工厂，必须把当前的默认成主工厂，防止误操作
+                lcl_hm_product_pl_fact.priority_factory := '1';
+              end if;
+              insert into hm_product_pl_fact
+                (row_id,
+                 production_department,
+                 material_id,
+                 created_by,
+                 priority_factory,
+                 action_batch_id)
+              values
+                (lcl_hm_product_pl_fact.row_id,
+                 lcl_hm_product_pl_fact.production_department,
+                 lcl_version_rowid,
+                 lcl_hm_product_pl_fact.created_by,
+                 lcl_hm_product_pl_fact.priority_factory,
+                 lcl_hm_product_pl_fact.action_batch_id);
+            
+            end if;
+          end if;
+          lcl_rows_finish := lcl_rows_finish + 1;
+        
+          update hm_action_batch_item a
+             set a.success_flag = '1',
+                 remark         = lcl_hm_product_pl_fact.material_id || '  ' ||
+                                  lcl_hm_product_pl_fact.production_department ||
+                                  ' operate palnt successful'
+           where master_row_id = lcl_hm_product_pl_fact.row_id
+             and action_batch_id = in_action_batch_id;
+        exception
+          when lcl_cotinue_exception then
+            UPDATE hm_action_batch_item
+               SET success_flag = '0', remark = lcl_retmsg
+             WHERE action_batch_id = in_action_batch_id
+               AND master_row_id = cur_row.row_id;
+        end;
+      end loop;
+      retcode := 'S';
+      retmsg  := 'Material import :' || lcl_rows_finish || '/' || lcl_rows;
+    elsif in_table_name = 'HM_PRODUCT_SALES_ORG_DATA' then
+      --销售视图的批导  
+      for cur_row in (select *
+                        from hm_product_sales_org_data_imp a
+                       where a.action_batch_id = in_action_batch_id) loop
+        begin
+          lcl_rows                      := lcl_rows + 1;
+          lcl_count                     := 0;
+          lcl_count2                    := 0;
+          lcl_hm_product_sales_org_data := cur_row;
+          if trim(lcl_hm_product_sales_org_data.country) is null then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                            lcl_hm_product_sales_org_data.sales_group ||
+                            '，国家字段不能为空，无法新建';
+            else
+              lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                            lcl_hm_product_sales_org_data.sales_group ||
+                            ', country code can not be empty,you can not create';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          ---针对历史数据做特殊处理，很多历史数据并不是标准的11位编码，只能采取特别的处理方式
+          --把所有的编码都放在基本视图的物料编码位置，生产版次编码为空，这种数据在基本视图加上
+          --字段is_std_product 为1是正常数据，为0是需要特殊处理
+          select count(*), max(is_std_product)
+            into lcl_count, lcl_is_std_product
+            from view_product_base a
+           where a.delete_flag = '0'
+             and a.product_code = lcl_hm_product_sales_org_data.material_id;
+          if lcl_count = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_sales_org_data.material_id ||
+                            '，编码不存在，无法修改';
+            else
+              lcl_retmsg := lcl_hm_product_sales_org_data.material_id ||
+                            ', Product?does not exist,can not be modified';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          if lcl_is_std_product = '1' then
+            lcl_material_code := substr(lcl_hm_product_sales_org_data.material_id,
+                                        1,
+                                        9);
+            lcl_version       := substr(lcl_hm_product_sales_org_data.material_id,
+                                        10,
+                                        2);
+          else
+            lcl_material_code := lcl_hm_product_sales_org_data.material_id;
+            lcl_version       := '';
+          end if;
+        
+          select count(*), max(row_id)
+            into lcl_count, lcl_rowid
+            from hm_product_base a
+           where a.product_code = lcl_material_code;
+          if lcl_count = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                            lcl_hm_product_sales_org_data.sales_group ||
+                            '，成品不存在，无法修改';
+            else
+              lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                            lcl_hm_product_sales_org_data.sales_group ||
+                            ', Product does not exist,can not be modified';
+            end if;
+            raise lcl_cotinue_exception;
+          else
+            if lcl_is_std_product = '1' then
+              select count(*), max(row_id), max(sales_group)
+                into lcl_count2, lcl_version_rowid, lcl_sale_group
+                from HM_PRODUCT_VERSION b
+               where b.pro_char = lcl_version
+                 and b.material_id = lcl_rowid;
+            
+            else
+              select count(*), max(row_id), max(sales_group)
+                into lcl_count2, lcl_version_rowid, lcl_sale_group
+                from HM_PRODUCT_VERSION b
+               where b.pro_char is null
+                 and b.material_id = lcl_rowid;
+            
+            end if;
+            if lcl_count2 = 0 then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                              lcl_hm_product_sales_org_data.sales_group ||
+                              '，成品不存在，无法修改';
+              else
+                lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                              lcl_hm_product_sales_org_data.sales_group ||
+                              ', Product does not exist,can not be modified';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+          end if;
+          lcl_count := 0;
+          /*select count(*)
+           into lcl_count
+           from hm_fnd_values a
+          where a.value = lcl_hm_product_sales_org_data.sales_group
+            and a.value_set_id = 'SalesOrganization';*/
+          select count(*), max(company_type), max(abbreviation)
+            into lcl_count, lcl_company_type, lcl_abbreviation
+            from hm_product_customer a
+           where a.delete_flag = '0'
+             and a.company_code = lcl_hm_product_sales_org_data.sales_group;
+          if lcl_count = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                            lcl_hm_product_sales_org_data.sales_group ||
+                            '，销售组织或者大客户不存在，无法新建';
+            else
+              lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                            lcl_hm_product_sales_org_data.sales_group ||
+                            ', sales organization or key customer?does not exist,you can not create';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+        
+          if lcl_company_type = 'OTC' then
+            --销售组织需要检查权限，大客户不需要
+            ----------------------权限排查------------------------------
+            --看看物料在否在权限范围内
+            if lcl_role = 'SalesGroupManger' then
+              --检查成品是否有权限范围内的销售组织
+              select count(*)
+                into lcl_count
+                from hm_role_splits_person c
+               where c.codevalue =
+                     lcl_hm_product_sales_org_data.sales_group
+                 and c.kindvalue = 'SalesOrganization'
+                 and c.org_role = 'SalesGroupManger'
+                 and c.delete_flag = '0'
+                 and c.psn_account =
+                     lcl_hm_product_sales_org_data.created_by;
+            
+              if lcl_count = '0' then
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                                lcl_hm_product_sales_org_data.sales_group ||
+                                '，成品不在权限范围内';
+                else
+                  lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                                lcl_hm_product_sales_org_data.sales_group ||
+                                ', product is not in your permission limit';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            
+            elsif lcl_role = 'MRPPlantManger' then
+              --检查工厂权限是否存在  
+            
+              select count(*)
+                into lcl_count
+                from hm_product_version a
+               where exists
+               (select null
+                        from hm_product_pl_fact b, hm_role_splits_person c
+                       where c.codevalue = b.production_department
+                         and c.kindvalue = 'PlantCode'
+                         and c.org_role = 'MRPPlantManger'
+                         and c.psn_account =
+                             lcl_hm_product_sales_org_data.created_by
+                         and a.row_id = b.material_id)
+                 and a.delete_flag = '0'
+                 and a.row_id = lcl_version_rowid;
+            
+              if lcl_count = '0' then
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                                lcl_hm_product_sales_org_data.sales_group ||
+                                '，成品不在权限范围内';
+                else
+                  lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                                lcl_hm_product_sales_org_data.sales_group ||
+                                ', product is not in your permission limit';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            
+            elsif lcl_role = 'ProductManger' then
+              --产品大类权限
+              select count(*)
+                into lcl_count
+                from hm_product_base a
+               where exists (select null
+                        from hm_role_splits_person c
+                       where c.codevalue = a.product_group
+                         and c.kindvalue = 'ProductGroup'
+                         and c.org_role = 'ProductManger'
+                         and c.delete_flag = '0'
+                         and c.psn_account =
+                             lcl_hm_product_sales_org_data.created_by)
+                 and a.delete_flag = '0'
+                 and a.row_id = lcl_rowid;
+            
+              if lcl_count = '0' then
+                if in_language = 'ZH' then
+                  lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                                lcl_hm_product_sales_org_data.sales_group ||
+                                '，成品不在权限范围内';
+                else
+                  lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                                lcl_hm_product_sales_org_data.sales_group ||
+                                ', product is not in your permission limit';
+                end if;
+                raise lcl_cotinue_exception;
+              end if;
+            else
+              --MDCMaterial 建立，不需要看权限
+              null;
+            end if;
+          end if;
+          ----------------------权限排查结束-------------------------------------------           
+        
+          lcl_str_split_table := comm_util.func_split(lcl_hm_product_sales_org_data.country,
+                                                      ',');
+          lcl_all_country     := '';
+          --首先检查是否所有的国家代码都合法，有一条不合法就不继续往下处理，防止出现有一个国家
+          --不存在，但前面的数据更新已经发生的情况
+          for i in 1 .. lcl_str_split_table.count loop
+            lcl_count1 := 0;
+            select count(*), max(c.tsp_country)
+              into lcl_count1, lcl_country
+              from hm_product_customer     a,
+                   hm_product_cust_country b,
+                   hm_cd_counrtry_spi2tsp  c
+             where b.country_code = c.country
+               and b.country_code = lcl_str_split_table(i)
+               and b.delete_flag = '0'
+               and a.row_id = b.customer_id
+               and a.company_code =
+                   lcl_hm_product_sales_org_data.sales_group;
+          
+            if lcl_count1 = 0 then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                              lcl_hm_product_sales_org_data.sales_group ||
+                              '下，国家代码' || lcl_str_split_table(i) ||
+                              '不存在，无法创建';
+              else
+                lcl_retmsg := lcl_hm_product_sales_org_data.material_id || '  ' ||
+                              lcl_hm_product_sales_org_data.sales_group ||
+                              '，country code ' || lcl_str_split_table(i) ||
+                              ' does not exists，you can not create';
+              end if;
+              raise lcl_cotinue_exception;
+            end if;
+            --如果映射出的TSP国家代码为空，则用MDM的国家代码代替
+            if lcl_country is null then
+              lcl_country := lcl_str_split_table(i);
+            end if;
+            --组合出TSP系统使用的国家代码
+            if lcl_all_country is null then
+              lcl_all_country := lcl_country;
+            else
+              lcl_all_country := lcl_all_country || ',' || lcl_country;
+            end if;
+          end loop;
+          ---验证销售组织是否存在
+          lcl_count := 0;
+          select count(*), max(row_id)
+            into lcl_count, lcl_sales_id
+            from hm_product_sales_org_data a
+           where a.sales_group = lcl_hm_product_sales_org_data.sales_group
+             and a.material_id = lcl_version_rowid;
+        
+          if lcl_count > 0 then
+            --删除所有已有的国家
+            insert into hm_product_sales_guojia_his
+              select *
+                from hm_product_sales_guojia x
+               where x.sales_id = lcl_sales_id;
+            -- delete from hm_product_sales_guojia x 20140624 改成不删除原来的国家  只是拓展
+            -- where x.sales_id = lcl_sales_id;
+            --更新销售组织视图
+            insert into hm_product_sales_org_data_his
+              select *
+                from hm_product_sales_org_data a
+               where a.row_id = lcl_sales_id;
+            update hm_product_sales_org_data y
+               set y.last_upd        = sysdate,
+                   y.last_upd_by     = lcl_hm_product_sales_org_data.created_by,
+                   y.delete_flag     = '0',
+                   y.action_batch_id = lcl_hm_product_sales_org_data.action_batch_id
+             where y.row_id = lcl_sales_id;
+            --如果当前的销售组织与生产版次视图默认的销售组织一致，则更新生产版次视图 的TSP国家代码
+            if lcl_sale_group = lcl_hm_product_sales_org_data.sales_group then
+              insert into hm_product_version_his
+                select *
+                  from hm_product_version a
+                 where a.row_id = lcl_version_rowid;
+            
+              update hm_product_version a
+                 set a.last_upd_by         = lcl_hm_product_sales_org_data.created_by,
+                     a.last_upd            = sysdate,
+                     a.sales_group_country = lcl_all_country
+               where a.row_id = lcl_version_rowid;
+            end if;
+          else
+            insert into hm_product_sales_org_data
+              (row_id,
+               sales_group,
+               material_id,
+               created_by,
+               action_batch_id)
+            values
+              (lcl_hm_product_sales_org_data.row_id,
+               lcl_hm_product_sales_org_data.sales_group,
+               lcl_version_rowid,
+               lcl_hm_product_sales_org_data.created_by,
+               lcl_hm_product_sales_org_data.action_batch_id);
+            lcl_sales_id := lcl_hm_product_sales_org_data.row_id;
+            --检查该成品是否有默认的销售组织，没有将当前的设为默认销售组织
+            if lcl_sale_group is null then
+              insert into hm_product_version_his
+                select *
+                  from hm_product_version a
+                 where a.row_id = lcl_version_rowid;
+            
+              update hm_product_version a
+                 set a.last_upd_by         = lcl_hm_product_sales_org_data.created_by,
+                     a.last_upd            = sysdate,
+                     a.sales_group         = lcl_abbreviation,
+                     a.sales_group_country = lcl_all_country
+               where a.row_id = lcl_version_rowid;
+            end if;
+          end if;
+          for i in 1 .. lcl_str_split_table.count loop
+            lcl_guojiaCount :=0;
+            --原先有的就不用加了
+            select count(*)
+              into lcl_guojiaCount
+             from  hm_product_sales_guojia sgf
+             where sgf.sales_id = lcl_sales_id
+               and sgf.country_code = lcl_str_split_table(i);
+               
+            if lcl_guojiaCount = 0 then
+            insert into hm_product_sales_guojia
+              (row_id, sales_id, country_code, created_by, action_batch_id)
+            values
+              (comm_util.FUNC_NEW_ROWID,
+               lcl_sales_id,
+               lcl_str_split_table(i),
+               lcl_hm_product_sales_org_data.created_by,
+               lcl_hm_product_sales_org_data.action_batch_id);
+            end if;
+          end loop;
+          lcl_rows_finish := lcl_rows_finish + 1;
+        
+          update hm_action_batch_item a
+             set a.success_flag = '1',
+                 remark         = lcl_hm_product_sales_org_data.material_id || '  ' ||
+                                  lcl_hm_product_sales_org_data.sales_group ||
+                                  ' operate sales group successful'
+           where master_row_id = lcl_hm_product_sales_org_data.row_id
+             and action_batch_id = in_action_batch_id;
+        exception
+          when lcl_cotinue_exception then
+            UPDATE hm_action_batch_item
+               SET success_flag = '0', remark = lcl_retmsg
+             WHERE action_batch_id = in_action_batch_id
+               AND master_row_id = cur_row.row_id;
+        end;
+      end loop;
+      retcode := 'S';
+      retmsg  := 'Material import :' || lcl_rows_finish || '/' || lcl_rows;
+    elsif in_table_name = 'PRODUCTSERVICE' then
+      --成品的服务类型和市场类型批量修改
+      --2014、1、10
+      --
+      for cur_row in (select *
+                        from hm_product_apply a
+                       where a.action_batch_id = in_action_batch_id) loop
+        begin
+          lcl_rows             := lcl_rows + 1;
+          lcl_count            := 0;
+          lcl_hm_product_apply := cur_row;
+          lcl_count2           := 0;
+          ----成品编码不能为空
+          if trim(lcl_hm_product_apply.product_code) is null then
+            if in_language = 'ZH' then
+              lcl_retmsg := '成品编码不能为空';
+            else
+              lcl_retmsg := 'Product code can not be empty';
+            end if;
+            raise lcl_cotinue_exception;
+          end if;
+          --转化大小写
+          lcl_hm_product_apply.product_code := upper(lcl_hm_product_apply.product_code);
+          --验证产品编码是否存在
+          select count(*), max(base_id)
+            into lcl_count, lcl_rowid
+            from view_product_base
+           where product_code = lcl_hm_product_apply.product_code;
+          if lcl_count = 0 then
+            if in_language = 'ZH' then
+              lcl_retmsg := lcl_hm_product_apply.product_code||'-'||'不存在的成品编码';
+            else
+              lcl_retmsg := lcl_hm_product_apply.product_code||'-'||'Product code is not exists';
+            end if;
+             raise lcl_cotinue_exception;
+          end if;
+          --市场类型是否存在
+          if lcl_hm_product_apply.market_type is not null then
+             select count(*) into lcl_count from hm_fnd_values v where v.value= lcl_hm_product_apply.market_type and v.value_set_id = 'MarketType';
+             if lcl_count = 0 then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_apply.product_code||'-'||'不存在的市场类型';
+              else
+                lcl_retmsg := lcl_hm_product_apply.product_code||'-'||'Market Type  is Not Exists';
+              end if;
+               raise lcl_cotinue_exception;
+             end if;
+          end if;
+          --服务类型是否存在
+           if lcl_hm_product_apply.service_type is not null then
+             select count(*) into lcl_count from hm_fnd_values v where v.value= lcl_hm_product_apply.service_type and v.value_set_id = 'ServiceType';
+             if lcl_count = 0 then
+              if in_language = 'ZH' then
+                lcl_retmsg := lcl_hm_product_apply.product_code||'-'||'不存在的服务类型';
+              else
+                lcl_retmsg := lcl_hm_product_apply.product_code||'-'||'Service Type  is Not Exists';
+              end if;
+               raise lcl_cotinue_exception;
+             end if;
+          end if;
+          --成品基本表先插历史
+          insert into hm_product_base_his
+            select *
+              from hm_product_base hb
+             where hb.row_id =
+                   (select vpb.base_id
+                      from view_product_base vpb
+                     where vpb.product_code =
+                           lcl_hm_product_apply.product_code);
+          --成品表更新
+          update hm_product_base hpb
+             set hpb.market_type  = lcl_hm_product_apply.market_type,
+                 hpb.service_type = lcl_hm_product_apply.service_type,
+                 hpb.last_upd_by  = lcl_hm_product_apply.created_by,
+                 hpb.last_upd = sysdate
+           
+           where hpb.row_id =
+                 (select vpb.base_id
+                    from view_product_base vpb
+                   where vpb.product_code =
+                         lcl_hm_product_apply.product_code);
+          --差错控制
+          --更新结果表
+          update hm_action_batch_item a
+             set a.success_flag = '1',
+                 remark         = 'Product code ' ||
+                                  lcl_hm_product_apply.product_code ||
+                                  ' update successful'
+           where master_row_id = lcl_hm_product_apply.row_id
+             and action_batch_id = in_action_batch_id;
+          lcl_rows_finish := lcl_rows_finish + 1;
+        exception
+          when lcl_cotinue_exception then
+            --更新结果表
+            UPDATE hm_action_batch_item
+               SET success_flag = '0', remark = lcl_retmsg
+             WHERE action_batch_id = in_action_batch_id
+               AND master_row_id = cur_row.row_id;
+        end;
+      end loop;
+      retcode := 'S';
+      retmsg  := 'ProductServiceUpdate :' || lcl_rows_finish || '/' ||
+                 lcl_rows;
+    else
+      retcode := 'E';
+      retmsg  := 'Invalid Import Type';
+    end if;
+    commit;
+  
+  exception
+    when others then
+      ROLLBACK;
+      retcode := 'E';
+      retmsg  := 'prc_material_import:operate failure! Exception Code:' ||
+                 SQLCODE || ';Exception message:' || SQLERRM;
+  end prc_product_import;
+
+end product;

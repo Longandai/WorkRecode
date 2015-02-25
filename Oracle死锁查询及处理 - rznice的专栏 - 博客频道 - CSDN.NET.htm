@@ -1,0 +1,821 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0051)http://blog.csdn.net/rznice/article/details/6683905 -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <script type="text/javascript" async="" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ga.js"></script><script id="allmobilize" charset="utf-8" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/allmobilize.min.js"></script><style type="text/css"></style>
+ <meta http-equiv="Cache-Control" content="no-siteapp"><link rel="alternate" media="handheld" href="http://blog.csdn.net/rznice/article/details/6683905#">
+
+    <title>Oracle死锁查询及处理 - rznice的专栏
+        - 博客频道 - CSDN.NET</title>
+    
+    <meta name="description" content="一、数据库死锁的现象程序在执行的过程中，点击确定或保存按钮，程序没有响应，也没有出现报错。二、死锁的原理当对于数据库某个表的某一列做更新或删除等操作，执行完毕后该条语句不提交，另一条对于这一列数据做更新操作的语句在执行的时候就会处于等待状态，此时的现象是这条语">
+    <script src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/jquery.js" type="text/javascript"></script>
+    <script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ad.js"></script>
+        <!--new top-->
+       
+        <link rel="stylesheet" href="http://static.csdn.net/public/common/toolbar/css/index.css">
+        <!--new top-->
+
+    <link rel="Stylesheet" type="text/css" href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/style.css">
+    <link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="http://blog.csdn.net/rznice/rss/list">
+    <link rel="shortcut icon" href="http://csdnimg.cn/public/favicon.ico">
+    <link type="text/css" rel="stylesheet" href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/default.css">
+ 
+
+
+<script src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/share.js"></script><script type="text/javascript" charset="utf-8" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/tracking.js"></script><script type="text/javascript" charset="utf-8" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/main.js"></script><link rel="stylesheet" type="text/css" href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/style(1).css"><link type="text/css" rel="stylesheet" href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/style(2).css"><script src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/logger.js"></script><link href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/bdsstyle.css" rel="stylesheet" type="text/css"><link rel="stylesheet" href="http://bdimg.share.baidu.com/static/api/css/share_style0_16.css?v=f4b44e79.css"></head>
+<body><iframe frameborder="0" style="display: none;"></iframe>
+    
+   
+      <!--new top-->
+    <script id="toolbar-tpl-scriptId" fixed="true" prod="blog" skin="black" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/html.js" type="text/javascript"></script><div class="csdn-toolbar csdn-toolbar-skin-black ">        <div class="container row center-block ">          <div class="col-md-3 pull-left logo clearfix"><a href="http://www.csdn.net/?ref=toolbar" title="CSDN首页" target="_blank" class="icon"></a><a title="频道首页" href="http://blog.csdn.net/?ref=toolbar_logo" target="_blank" class="img blog-icon"></a></div>          <div class="pull-right login-wrap unlogin">            <ul class="btns">              <li class="loginlink"><a href="https://passport.csdn.net/account/login?ref=toolbar" target="_top">登录&nbsp;</a>|<a target="_top" href="https://passport.csdn.net/account/register?ref=toolbar">&nbsp;注册</a></li>              <li class="search">                <div class="icon on-search-icon">                  <div class="wrap">                    <div class="curr-icon-wrap">                      <div class="curr-icon"></div>                    </div>                    <form action="http://so.csdn.net/search" method="get" target="_blank">                      <input type="hidden" value="toolbar" name="ref" accesskey="2">                      <div class="border">                        <input placeholder="搜索" type="text" value="" name="q" accesskey="2"><span class="icon-enter-sm"></span>                      </div>                    </form>                  </div>                </div>              </li>              <li class="favor">                <div class="icon on-favor-icon">                  <div class="wrap">                    <div class="curr-icon-wrap">                      <div class="curr-icon"></div>                    </div>                    <div style="display:none;" class="favor-success"><span class="msg">收藏成功</span>                      <div class="btns"><span class="btn btn-primary ok">确定</span></div>                    </div>                    <div style="display:none;" class="favor-failed"><span class="icon-danger-lg"></span><span class="msg">收藏失败，请重新收藏</span>                      <div class="btns"><span class="btn btn-primary ok">确定</span></div>                    </div>                    <form role="form" class="form-horizontal favor-form">                      <div class="form-group">                        <div class="clearfix">                          <label for="input-title" class="col-sm-2 control-label">标题</label>                          <div class="col-sm-10">                            <input id="inputTitle" type="text" placeholder="" class="title form-control">                          </div>                        </div>                        <div class="alert alert-danger"><strong></strong>标题不能为空</div>                      </div>                      <div class="form-group">                        <label for="input-url" class="col-sm-2 control-label">网址</label>                        <div class="col-sm-10">                          <input id="input-url" type="text" placeholder="" class="url form-control">                        </div>                      </div>                      <div class="form-group">                        <label for="input-tag" class="col-sm-2 tag control-label">标签</label>                        <div class="col-sm-10">                          <input id="input-tag" type="text" class="form-control tag">                        </div>                      </div>                      <div class="form-group">                        <label for="input-description" class="description col-sm-2 control-label">摘要</label>                        <div class="col-sm-10">                          <textarea id="input-description" class="form-control description"></textarea>                        </div>                      </div>                      <div class="form-group">                        <div class="col-sm-offset-2 col-sm-10 ft">                          <div class="col-sm-4 pull-left">                            <div class="checkbox">                              <label>                                <input type="checkbox" name="share" checked="checked" class="share">公开                              </label>                            </div>                          </div>                          <div class="col-sm-8 pull-right favor-btns">                            <button type="button" class="cancel btn btn-default">取消</button>                            <button type="submit" class="submit btn btn-primary">收藏</button>                          </div>                        </div>                      </div>                    </form>                  </div>                </div>              </li>              <li class="notify">                <div style="display:none" class="number"></div>                <div style="display:none" class="icon-hasnotes-sm"></div>                <div id="header_notice_num"></div>                <div class="icon on-notify-icon">                  <div class="wrap">                    <div class="curr-icon-wrap">                      <div class="curr-icon"></div>                    </div>                    <div id="note1" class="csdn_note">                      <div class="box"></div>                    <iframe src="about:block" frameborder="0" allowtransparency="true" style="z-index:-1;position:absolute;top:0;left:0;width:100%;height:100%;background:transparent"></iframe></div>                  </div>                </div>              </li>              <li class="ugc">                <div class="icon on-ugc-icon">                  <div class="wrap clearfix">                    <div class="curr-icon-wrap">                      <div class="curr-icon"></div>                    </div>                    <dl>                      <dt><a href="http://geek.csdn.net/news/expert?ref=toolbar" target="_blank" class="p-news clearfix"><em class="icon"></em><span>分享资讯</span></a></dt>                      <dt><a href="http://share.csdn.net/slides/new?ref=toolbar" target="_blank" class="p-doc clearfix"><em class="icon"></em><span>传PPT/文档</span></a></dt>                      <dt><a href="http://bbs.csdn.net/topics/new?ref=toolbar" target="_blank" class="p-ask clearfix"><em class="icon"></em><span>提问题</span></a></dt>                      <dt><a href="http://write.blog.csdn.net/postedit?ref=toolbar" target="_blank" class="p-blog clearfix"><em class="icon"></em><span>写博客</span></a></dt>                      <dt><a href="http://u.download.csdn.net/upload?ref=toolbar" target="_blank" class="p-src clearfix"><em class="icon"></em><span>传资源</span></a></dt>                      <dt><a href="https://code.csdn.net/projects/new?ref=toolbar" target="_blank" class="c-obj clearfix"><em class="icon"></em><span>创建项目</span></a></dt>                      <dt><a href="https://code.csdn.net/snippets/new?ref=toolbar" target="_blank" class="c-code clearfix"><em class="icon"></em><span>创建代码片</span></a></dt>                    </dl>                  </div>                </div>              </li>              <li class="profile">                <div class="icon on-profile-icon"><img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/100x100.jpg" class="curr-icon-img">                  <div class="wrap clearfix">                    <div class="curr-icon-wrap">                      <div class="curr-icon"></div>                    </div>                    <div class="bd">                      <dl class="clearfix">                        <dt class="pull-left img"><a target="_blank" href="http://my.csdn.net/?ref=toolbar" class="avatar"><img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/100x100.jpg"></a></dt>                        <dd class="info"><a target="_blank" href="http://my.csdn.net/?ref=toolbar" class="nickname"></a><a class="set-nick" href="https://passport.csdn.net/account/profile">设置昵称<span class="write-icon"></span></a><span class="dec"><a class="fill-dec" href="http://my.csdn.net/" target="_blank">编辑自我介绍，让更多人了解你<span class="write-icon"></span></a></span></dd>                      </dl>                    </div>                    <div class="ft clearfix"><a target="_blank" href="http://my.csdn.net/my/account/changepwd?ref=toolbar" class="pull-left"><span class="icon-cog"></span>帐号设置</a><a href="https://passport.csdn.net/account/logout?ref=toolbar" target="_top" class="pull-right "><span class="icon-signout"></span><span class="out">退出</span></a></div>                  </div>                </div>              </li>              <li class="apps">                <div class="icon on-apps-icon">                  <div class="wrap clearfix">                    <div class="curr-icon-wrap">                      <div class="curr-icon"></div>                    </div>                  <div class="detail">                    <dl>                      <dt>                        <h5>社区</h5>                      </dt>                      <dd> <a href="http://blog.csdn.net/?ref=toolbar" target="_blank">博客</a></dd>                      <dd> <a href="http://bbs.csdn.net/?ref=toolbar" target="_blank">论坛</a></dd>                      <dd> <a href="http://download.csdn.net/?ref=toolbar" target="_blank">下载</a></dd>                      <dd><a href="http://share.csdn.net/?ref=toolbar" target="_blank">Share</a></dd>                      <dd><a href="http://geek.csdn.net/?ref=toolbar" target="_blank">极客头条</a></dd>                    </dl>                  </div>                  <div class="detail">                    <dl>                      <dt>                        <h5>服务</h5>                      </dt>                      <dd> <a href="https://code.csdn.net/?ref=toolbar" target="_blank">CODE</a></dd>                      <dd> <a href="http://hero.csdn.net/?ref=toolbar" target="_blank">英雄会</a></dd>                      <dd> <a href="http://huiyi.csdn.net/?ref=toolbar" target="_blank">活动</a></dd>                      <dd> <a href="http://www.csto.com/?ref=toolbar" target="_blank">CSTO</a></dd>                    </dl>                  </div>                  <div class="detail last">                    <dl>                      <dt>                        <h5>俱乐部</h5>                      </dt>                      <dd> <a href="http://cto.csdn.net/?ref=toolbar" target="_blank">CTO俱乐部</a></dd>                      <dd> <a href="http://student.csdn.net/?ref=toolbar" target="_blank">高校俱乐部</a></dd>                    </dl>                  </div>                </div>              </div>            </li>            </ul>          </div>        </div>    </div>
+     <!--new top-->
+    <div id="container">
+        <div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h2>
+                <a href="http://blog.csdn.net/rznice">rznice的专栏</a></h2>
+            <h3></h3>
+            <div class="clear">
+            </div>
+        </div>
+        <div class="clear">
+        </div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg">
+    </div>
+    <div class="navigator">
+        <ul>
+                <li id="btnContents"><a href="http://blog.csdn.net/rznice?viewmode=contents"><span onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_mulu&#39;])">
+                    <img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ico_list.gif">目录视图</span></a></li>
+                <li id="btnView"><a href="http://blog.csdn.net/rznice?viewmode=list"><span onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_zhaiyao&#39;])">
+                    <img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ico_summary.gif">摘要视图</span></a></li>
+                <li id="btnRss"><a href="http://blog.csdn.net/rznice/rss/list"><span onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_RSS&#39;])">
+                    <img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ico_rss.gif">订阅</span></a></li>                
+
+            </ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "rznice";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/rznice";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";  
+</script>
+
+        <div id="body">
+            <div id="main">
+                <div class="main">
+                        <div class="ad_class">
+<div class="notice tracking-ad" data-mod="popu_3"> 
+
+<a href="http://bbs.csdn.net/topics/390812950?page=2#post-398116601" target="_blank">
+<font color="blue">博客专家福利
+</font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://bbs.csdn.net/topics/390863850" target="_blank">
+<font color="red">【限时活动】建专辑得大奖</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2014-09-10/2821606" target="_blank">
+<font color="blue">专访荣浩：流程的永恒之道
+</font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://blog.csdn.net/blogdevteam/article/details/38657235" target="_blank"><font color="red">当青春遇上互联网，能否点燃你的创业梦
+</font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://blog.csdn.net/blogdevteam/article/details/38418263" target="_blank">
+<font color="blue">推荐有礼--找出您心中的技术大牛
+</font></a>
+
+
+</div>                        </div>
+                        
+
+  
+<link href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/comment1.css" type="text/css" rel="stylesheet">
+<link href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/style1.css" type="text/css" rel="stylesheet">
+<script language="JavaScript" type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/jquery.cookie.js"></script>
+<script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/main(1).js"></script>
+<div id="article_details" class="details">
+    <div class="article_title">   
+         <span class="ico ico_type_Repost"></span>
+
+
+    <h1>
+        <span class="link_title"><a href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET.htm">
+        Oracle死锁查询及处理
+        </a></span>
+    </h1>
+</div>
+
+    <div class="article_manage">
+    <span class="link_postdate">2011-08-13 11:43</span>
+    <span class="link_view" title="阅读次数">32642人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="http://blog.csdn.net/rznice/article/details/6683905#comments" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_pinglun&#39;])">评论</a>(1)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_shoucang&#39;]);collectArticle(&#39;Oracle死锁查询及处理&#39;,&#39;6683905&#39;);return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="http://blog.csdn.net/rznice/article/details/6683905#report" onclick="javascript:_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_jubao&#39;]);report(6683905,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href="http://www.csdn.net/tag/oracle" target="_blank" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_tag&#39;]);">oracle</a><a href="http://www.csdn.net/tag/session" target="_blank" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_tag&#39;]);">session</a><a href="http://www.csdn.net/tag/object" target="_blank" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_tag&#39;]);">object</a><a href="http://www.csdn.net/tag/%e6%95%b0%e6%8d%ae%e5%ba%93" target="_blank" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_tag&#39;]);">数据库</a><a href="http://www.csdn.net/tag/kill" target="_blank" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_tag&#39;]);">kill</a><a href="http://www.csdn.net/tag/sql" target="_blank" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_tag&#39;]);">sql</a></div>
+
+  
+    
+<div id="article_content" class="article_content">
+
+&nbsp;
+<p>一、数据库死锁的现象<br>
+程序在执行的过程中，点击确定或保存按钮，程序没有响应，也没有出现报错。<br>
+二、死锁的原理<br>
+当对于数据库某个表的某一列做更新或删除等操作，执行完毕后该条语句不提<br>
+交，另一条对于这一列数据做更新操作的语句在执行的时候就会处于等待状态，<br>
+此时的现象是这条语句一直在执行，但一直没有执行成功，也没有报错。<br>
+三、死锁的定位方法<br>
+通过检查数据库表，能够检查出是哪一条语句被死锁，产生死锁的机器是哪一台。<br>
+1）用dba用户执行以下语句<br>
+select username,lockwait,status,machine,program from v$session where sid in<br>
+(select session_id from v$locked_object)<br>
+如果有输出的结果，则说明有死锁，且能看到死锁的机器是哪一台。字段说明：<br>
+Username：死锁语句所用的数据库用户；<br>
+Lockwait：死锁的状态，如果有内容表示被死锁。<br>
+Status： 状态，active表示被死锁<br>
+Machine： 死锁语句所在的机器。<br>
+Program： 产生死锁的语句主要来自哪个应用程序。<br>
+2）用dba用户执行以下语句，可以查看到被死锁的语句。<br>
+select sql_text from v$sql where hash_value in <br>
+(select sql_hash_value from v$session where sid in<br>
+(select session_id from v$locked_object))</p>
+<p>四、死锁的解决方法<br>
+&nbsp;&nbsp;&nbsp;&nbsp; 一般情况下，只要将产生死锁的语句提交就可以了，但是在实际的执行过程中。用户可<br>
+能不知道产生死锁的语句是哪一句。可以将程序关闭并重新启动就可以了。<br>
+　经常在Oracle的使用过程中碰到这个问题，所以也总结了一点解决方法。 </p>
+<p>1）查找死锁的进程： </p>
+<p>sqlplus "/as sysdba" (sys/change_on_install)<br>
+SELECT s.username,l.OBJECT_ID,l.SESSION_ID,s.SERIAL#,<br>
+l.ORACLE_USERNAME,l.OS_USER_NAME,l.PROCESS <br>
+FROM V$LOCKED_OBJECT l,V$SESSION S WHERE l.SESSION_ID=S.SID;</p>
+<p>2）kill掉这个死锁的进程： </p>
+<p>　　alter system kill session ‘sid,serial#’; （其中sid=l.session_id） </p>
+<p>3）如果还不能解决： </p>
+<p>select pro.spid from v$session ses,v$process pro where ses.sid=XX and ses.paddr=pro.addr;</p>
+<p>　　其中sid用死锁的sid替换: exit<br>
+ps -ef|grep spid</p>
+<p>　　其中spid是这个进程的进程号，kill掉这个Oracle进程</p>
+<p>from:http://southking.javaeye.com/blog/550832</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><br>
+select A.SQL_TEXT, B.USERNAME, C.OBJECT_ID, C.SESSION_ID, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; B.SERIAL#, C.ORACLE_USERNAME,C.OS_USER_NAME,C.Process,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ''''||C.Session_ID||','||B.SERIAL#||''''<br>
+from v$sql A, v$session B, v$locked_object C<br>
+where A.HASH_VALUE = B.SQL_HASH_VALUE and<br>
+B.SID = C.Session_ID</p>
+<p>&nbsp;</p>
+<p>转自：<a href="http://xinxiangsui2018.blog.163.com/blog/static/106097856201010304532280/">http://xinxiangsui2018.blog.163.com/blog/static/106097856201010304532280/</a></p>
+
+</div>
+
+
+
+
+<!-- Baidu Button BEGIN -->
+
+<div class="bdsharebuttonbox bdshare-button-style0-16" style="float: right;" data-bd-bind="1411013203155">
+<a href="http://blog.csdn.net/rznice/article/details/6683905#" class="bds_more" data-cmd="more" style="background-position:0 0 !important; background-image: url(http://bdimg.share.baidu.com/static/api/img/share/icons_0_16.png?v=d754dcc0.png) !important"></a>
+<a href="http://blog.csdn.net/rznice/article/details/6683905#" class="bds_qzone" data-cmd="qzone" title="分享到QQ空间" style="background-position:0 -52px !important"></a>
+<a href="http://blog.csdn.net/rznice/article/details/6683905#" class="bds_tsina" data-cmd="tsina" title="分享到新浪微博" style="background-position:0 -104px !important"></a>
+<a href="http://blog.csdn.net/rznice/article/details/6683905#" class="bds_tqq" data-cmd="tqq" title="分享到腾讯微博" style="background-position:0 -260px !important"></a>
+<a href="http://blog.csdn.net/rznice/article/details/6683905#" class="bds_renren" data-cmd="renren" title="分享到人人网" style="background-position:0 -208px !important"></a>
+<a href="http://blog.csdn.net/rznice/article/details/6683905#" class="bds_weixin" data-cmd="weixin" title="分享到微信" style="background-position:0 -1612px !important"></a>
+</div>
+<script>window._bd_share_config = { "common": { "bdSnsKey": {}, "bdText": "", "bdMini": "1", "bdMiniList": false, "bdPic": "", "bdStyle": "0", "bdSize": "16" }, "share": {} }; with (document) 0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = 'http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion=' + ~(-new Date() / 36e5)];</script>
+<!-- Baidu Button END -->
+
+<!--192.168.100.35-->
+<ul class="article_next_prev">
+            <li class="prev_article"><span onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_shangyipian&#39;]);location.href=&#39;/rznice/article/details/6683685&#39;;">上一篇</span><a href="http://blog.csdn.net/rznice/article/details/6683685" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_shangyipian&#39;])">cmd 命令行模式下输出中文时显示乱码的解决方案</a></li>
+            <li class="next_article"><span onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_xiayipian&#39;]);location.href=&#39;/rznice/article/details/6711928&#39;;">下一篇</span><a href="http://blog.csdn.net/rznice/article/details/6711928" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_xiayipian&#39;])">批量注册修复动态链接库 DLL 文件</a></li>
+</ul>
+
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=1536434" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/bds_s_v2.js"></script>
+
+<script type="text/javascript">
+    document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000)
+</script>
+<!-- Baidu Button END -->
+
+
+</div>
+      <dl class="blog-associat-tag">
+        <dt>主题推荐</dt>
+        <dd>
+                <a href="http://www.csdn.net/tag/oracle" target="_blank" class="blog-tage-red">oracle</a> 
+                <a href="http://www.csdn.net/tag/%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F" target="_blank" class="blog-tage-red">应用程序</a> 
+                <a href="http://www.csdn.net/tag/%E6%95%B0%E6%8D%AE%E5%BA%93" target="_blank" class="blog-tage-red">数据库</a> 
+                <a href="http://www.csdn.net/tag/%E6%95%B0%E6%8D%AE" target="_blank" class="blog-tage-red">数据</a> 
+                <a href="http://www.csdn.net/tag/2010" target="_blank" class="blog-tage-red">2010</a> 
+        </dd>
+    </dl> 
+
+
+<dl class="blog-ass-articl tracking-ad" data-mod="popu_36" id="res-relatived"> 
+     <dt><span>猜你在找</span></dt>    
+<dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="http://blog.csdn.net/gufeng672/article/details/7293150" title="Oracle DBA命令参考——alter database" strategy="CFRecommendAlgorithm" target="_blank">Oracle DBA命令参考——alter database</a></dd><dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="http://blog.csdn.net/firetaker/article/details/5784255" title="ORA-00947及解决" strategy="CFRecommendAlgorithm" target="_blank">ORA-00947及解决</a></dd><dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="http://blog.csdn.net/mmm333zzz/article/details/37773589" title="蓝缘管理系统第二个版本开源了。springMVC+springSecurity3.x+Mybaits3.x 系统" strategy="CFRecommendAlgorithm" target="_blank">蓝缘管理系统第二个版本开源了。springMVC+springSecurity3.x+Mybaits3.x 系统</a></dd><dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="http://blog.csdn.net/jationxiaozi/article/details/8509732" title="ehcache memcache redis 三大缓存男高音" strategy="CFRecommendAlgorithm" target="_blank">ehcache memcache redis 三大缓存男高音</a></dd><dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="http://blog.csdn.net/niguang09/article/details/6035813" title="java final 关键字" strategy="CFRecommendAlgorithm" target="_blank">java final 关键字</a></dd><dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="http://blog.csdn.net/voluptas/article/details/6339855" title="见过最好的git入门教程" strategy="CFRecommendAlgorithm" target="_blank">见过最好的git入门教程</a></dd><dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="http://blog.csdn.net/computerms/article/details/11766127" title="让rm命令提示确认后再删除" strategy="CFRecommendAlgorithm" target="_blank">让rm命令提示确认后再删除</a></dd><dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="http://blog.csdn.net/boat1980/article/details/3043488" title="set nocount on 和 set nocount off" strategy="CFRecommendAlgorithm" target="_blank">set nocount on 和 set nocount off</a></dd><dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="http://blog.csdn.net/fstao/article/details/2143487" title="进销存设计与分析_盘点单(9) " strategy="CFRecommendAlgorithm" target="_blank">进销存设计与分析_盘点单(9) </a></dd><dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="http://blog.csdn.net/niuch1029291561/article/details/8563285" title="Oracle 字符串分割的处理" strategy="CFRecommendAlgorithm" target="_blank">Oracle 字符串分割的处理</a></dd></dl>
+
+<script type="text/javascript">
+    var searchtitletags = 'Oracle死锁查询及处理' + ',' + 'oracle,应用程序,数据库,数据,2010';
+    searchService({
+        index: 'blog',
+        query: searchtitletags,
+        from: 10,
+        size: 10,
+        appendTo: '#res-relatived',
+        url: 'recommend',
+        his: 2,
+        client: "blog_cf_enhance",
+        tmpl: '<dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="#{ url }" title="#{ title }" strategy="#{ strategy }">#{ title }</a></dd>'
+    });
+
+ </script>   
+
+
+    <div id="ad_cen">
+   
+          <script type="text/javascript">
+              new Ad(4, 'ad_cen');
+          </script>
+    <iframe id="ad_frm_0" frameborder="0" scrolling="no" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ad(1).htm" style="border-width: 0px; overflow: hidden; width: 746px; height: 90px;"></iframe></div>
+<div class="comment_class">
+    <div id="comment_title" class="panel_head">
+        <span class="see_comment">查看评论</span><a name="comments"></a></div>
+    <div id="comment_list"><dl class="comment_item comment_topic" id="comment_item_3412925"><dt class="comment_head" floor="1">1楼 <span class="user"><a class="username" href="http://blog.csdn.net/gavin_luo" target="_blank">gavinluo</a> <span class="ptime">2014-01-17 15:03发表</span>  <a href="http://blog.csdn.net/rznice/article/details/6683905#reply" class="cmt_btn reply" title="回复">[回复]</a> <span class="comment_manage" style="display:none;" commentid="3412925" username="gavin_luo"> <a href="http://blog.csdn.net/rznice/article/details/6683905#quote" class="cmt_btn quote" title="引用">[引用]</a> <a href="http://blog.csdn.net/rznice/article/details/6683905#report" class="cmt_btn report" title="举报">[举报]</a></span></span></dt><dd class="comment_userface"><a href="http://blog.csdn.net/gavin_luo" target="_blank"><img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/3_gavin_luo.jpg" width="40" height="40"></a></dd><dd class="comment_body">这解决不了问题，是临时处理的办法，我想看到的是分析死锁造成原因，如何写程序避免死锁</dd></dl><div class="clear"></div></div>
+    <div id="comment_bar" style="display: none;">
+    </div>
+    <div id="comment_form"><div class="guest_link">您还没有登录,请<a href="javascript:void(0);" onclick="javascript:csdn.showLogin(function (dat) {js_logined(dat.data.userName);});">[登录]</a>或<a href="http://passport.csdn.net/account/register?from=http%3A%2F%2Fblog.csdn.net%2Frznice%2Farticle%2Fdetails%2F6683905">[注册]</a></div></div>
+
+    <div class="announce">
+        * 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+</div>
+
+<script type="text/javascript">
+    var fileName = '6683905';
+    var commentscount = 1;
+    var islock = false
+</script>
+<script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/comment.js"></script>
+    <div id="ad_bot">
+    <iframe id="ad_frm_1" frameborder="0" scrolling="no" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ad(2).htm" style="border-width: 0px; overflow: hidden; width: 746px; height: 0px;"></iframe></div>
+    <script type="text/javascript">
+    new Ad(5, 'ad_bot');
+    </script>
+<div id="report_dialog">
+</div>
+
+<div id="d-top" style="bottom:60px;">
+      
+
+       <a id="quick-reply" class="btn btn-top q-reply" title="快速回复" style="display:none;">
+            <img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/blog-icon-reply.png" alt="快速回复">
+        </a>    
+
+    <a id="d-top-a" class="btn btn-top backtop" style="display: block;" title="返回顶部" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_huidaodingbu&#39;])">         
+         <img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/top.png" alt="TOP">
+    </a>
+</div>
+<script type="text/javascript">
+    $(function ()
+    {
+        $("#ad_frm_0").height("90px");
+        
+        setTimeout(function(){
+            $("#ad_frm_2").height("200px");
+        },1000);
+        
+
+        if($("#comment_content").length>0)
+        {
+            $("#quick-reply").show();
+
+            $("#quick-reply").click(function(){
+                setEditorFocus();
+            });
+        }       
+     
+        var d_top = $('#d-top-a');
+        document.onscroll = function ()
+        {
+            var scrTop = (document.body.scrollTop || document.documentElement.scrollTop);
+            if (scrTop > 500)
+            {
+                d_top.show();
+            } else
+            {
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function ()
+        {
+            scrollTo(0, 0);
+            this.blur();
+            return false;
+        });
+    });
+  
+</script>
+<style type="text/css">
+    .tag_list
+    {
+        background: none repeat scroll 0 0 #FFFFFF;
+        border: 1px solid #D7CBC1;
+        color: #000000;
+        font-size: 12px;
+        line-height: 20px;
+        list-style: none outside none;
+        margin: 10px 2% 0 1%;
+        padding: 1px;
+    }
+    .tag_list h5
+    {
+        background: none repeat scroll 0 0 #E0DBD3;
+        color: #47381C;
+        font-size: 12px;
+        height: 24px;
+        line-height: 24px;
+        padding: 0 5px;
+        margin: 0;
+    }
+    .tag_list h5 a
+    {
+        color: #47381C;
+    }
+    .classify
+    {
+        margin: 10px 0;
+        padding: 4px 12px 8px;
+    }
+    .classify a
+    {
+        margin-right: 20px;
+        white-space: nowrap;
+    }
+</style>
+<div class="tag_list">
+    <h5>
+        <a href="http://www.csdn.net/tag/" target="_blank">核心技术类目</a></h5>
+    <div class="classify">
+<a title="全部主题" href="http://www.csdn.net/tag" target="_blank" onclick="LogClickCount(this,336);">全部主题</a>
+<a title="Hadoop" href="http://g.csdn.net/5272865" target="_blank" onclick="LogClickCount(this,336);">Hadoop</a>
+<a title="AWS" href="http://g.csdn.net/5272866" target="_blank" onclick="LogClickCount(this,336);">AWS</a>
+<a title="移动游戏" href="http://g.csdn.net/5272870" target="_blank" onclick="LogClickCount(this,336);">移动游戏</a>
+<a title="Java" href="http://g.csdn.net/5272871" target="_blank" onclick="LogClickCount(this,336);">Java</a>
+<a title="Android" href="http://g.csdn.net/5272872" target="_blank" onclick="LogClickCount(this,336);">Android</a>
+<a title="iOS" href="http://g.csdn.net/5272873" target="_blank" onclick="LogClickCount(this,336);">iOS</a>
+<a title="Swift" href="http://g.csdn.net/5272868" target="_blank" onclick="LogClickCount(this,336);">Swift</a>
+<a title="智能硬件" href="http://g.csdn.net/5272869" target="_blank" onclick="LogClickCount(this,336);">智能硬件</a>
+<a title="Docker" href="http://g.csdn.net/5272867" target="_blank" onclick="LogClickCount(this,336);">Docker</a>
+<a title="OpenStack" href="http://g.csdn.net/5272925" target="_blank" onclick="LogClickCount(this,336);">OpenStack</a>
+<a title="VPN" href="http://www.csdn.net/tag/vpn" target="_blank" onclick="LogClickCount(this,336);">VPN</a>
+<a title="Spark" href="http://g.csdn.net/5272924" target="_blank" onclick="LogClickCount(this,336);">Spark</a>
+<a title="ERP" href="http://www.csdn.net/tag/erp" target="_blank" onclick="LogClickCount(this,336);">ERP</a>
+<a title="IE10" href="http://www.csdn.net/tag/ie10" target="_blank" onclick="LogClickCount(this,336);">IE10</a>
+<a title="Eclipse" href="http://www.csdn.net/tag/eclipse" target="_blank" onclick="LogClickCount(this,336);">Eclipse</a>
+<a title="CRM" href="http://www.csdn.net/tag/crm" target="_blank" onclick="LogClickCount(this,336);">CRM</a>
+<a title="JavaScript" href="http://www.csdn.net/tag/javascript" target="_blank" onclick="LogClickCount(this,336);">JavaScript</a>
+<a title="数据库" href="http://www.csdn.net/tag/%E6%95%B0%E6%8D%AE%E5%BA%93" target="_blank" onclick="LogClickCount(this,336);">数据库</a>
+<a title="Ubuntu" href="http://www.csdn.net/tag/ubuntu" target="_blank" onclick="LogClickCount(this,336);">Ubuntu</a>
+<a title="NFC" href="http://www.csdn.net/tag/nfc" target="_blank" onclick="LogClickCount(this,336);">NFC</a>
+<a title="WAP" href="http://www.csdn.net/tag/wap" target="_blank" onclick="LogClickCount(this,336);">WAP</a>
+<a title="jQuery" href="http://www.csdn.net/tag/jquery" target="_blank" onclick="LogClickCount(this,336);">jQuery</a>
+<a title="BI" href="http://www.csdn.net/tag/bi" target="_blank" onclick="LogClickCount(this,336);">BI</a>
+<a title="HTML5" href="http://www.csdn.net/tag/html5" target="_blank" onclick="LogClickCount(this,336);">HTML5</a>
+<a title="Spring" href="http://www.csdn.net/tag/spring" target="_blank" onclick="LogClickCount(this,336);">Spring</a>
+<a title="Apache" href="http://www.csdn.net/tag/apache" target="_blank" onclick="LogClickCount(this,336);">Apache</a>
+<a title=".NET" href="http://www.csdn.net/tag/.net" target="_blank" onclick="LogClickCount(this,336);">.NET</a>
+<a title="API" href="http://www.csdn.net/tag/api" target="_blank" onclick="LogClickCount(this,336);">API</a>
+<a title="HTML" href="http://www.csdn.net/tag/html" target="_blank" onclick="LogClickCount(this,336);">HTML</a>
+<a title="SDK" href="http://www.csdn.net/tag/sdk" target="_blank" onclick="LogClickCount(this,336);">SDK</a>
+<a title="IIS" href="http://www.csdn.net/tag/iis" target="_blank" onclick="LogClickCount(this,336);">IIS</a>
+<a title="Fedora" href="http://www.csdn.net/tag/fedora" target="_blank" onclick="LogClickCount(this,336);">Fedora</a>
+<a title="XML" href="http://www.csdn.net/tag/xml" target="_blank" onclick="LogClickCount(this,336);">XML</a>
+<a title="LBS" href="http://www.csdn.net/tag/lbs" target="_blank" onclick="LogClickCount(this,336);">LBS</a>
+<a title="Unity" href="http://www.csdn.net/tag/unity" target="_blank" onclick="LogClickCount(this,336);">Unity</a>
+<a title="Splashtop" href="http://www.csdn.net/tag/splashtop" target="_blank" onclick="LogClickCount(this,336);">Splashtop</a>
+<a title="UML" href="http://www.csdn.net/tag/uml" target="_blank" onclick="LogClickCount(this,336);">UML</a>
+<a title="components" href="http://www.csdn.net/tag/components" target="_blank" onclick="LogClickCount(this,336);">components</a>
+<a title="Windows Mobile" href="http://www.csdn.net/tag/windowsmobile" target="_blank" onclick="LogClickCount(this,336);">Windows Mobile</a>
+<a title="Rails" href="http://www.csdn.net/tag/rails" target="_blank" onclick="LogClickCount(this,336);">Rails</a>
+<a title="QEMU" href="http://www.csdn.net/tag/qemu" target="_blank" onclick="LogClickCount(this,336);">QEMU</a>
+<a title="KDE" href="http://www.csdn.net/tag/kde" target="_blank" onclick="LogClickCount(this,336);">KDE</a>
+<a title="Cassandra" href="http://www.csdn.net/tag/cassandra" target="_blank" onclick="LogClickCount(this,336);">Cassandra</a>
+<a title="CloudStack" href="http://www.csdn.net/tag/cloudstack" target="_blank" onclick="LogClickCount(this,336);">CloudStack</a>
+<a title="FTC" href="http://www.csdn.net/tag/ftc" target="_blank" onclick="LogClickCount(this,336);">FTC</a>
+<a title="coremail" href="http://www.csdn.net/tag/coremail" target="_blank" onclick="LogClickCount(this,336);">coremail</a>
+<a title="OPhone " href="http://www.csdn.net/tag/ophone" target="_blank" onclick="LogClickCount(this,336);">OPhone </a>
+<a title="CouchBase" href="http://www.csdn.net/tag/couchbase" target="_blank" onclick="LogClickCount(this,336);">CouchBase</a>
+<a title="云计算" href="http://www.csdn.net/tag/%E4%BA%91%E8%AE%A1%E7%AE%97" target="_blank" onclick="LogClickCount(this,336);">云计算</a>
+<a title="iOS6" href="http://www.csdn.net/tag/iOS6" target="_blank" onclick="LogClickCount(this,336);">iOS6</a>
+<a title="Rackspace " href="http://www.csdn.net/tag/rackspace" target="_blank" onclick="LogClickCount(this,336);">Rackspace </a>
+<a title="Web App" href="http://www.csdn.net/tag/webapp" target="_blank" onclick="LogClickCount(this,336);">Web App</a>
+<a title="SpringSide" href="http://www.csdn.net/tag/springside" target="_blank" onclick="LogClickCount(this,336);">SpringSide</a>
+<a title="Maemo" href="http://www.csdn.net/tag/maemo" target="_blank" onclick="LogClickCount(this,336);">Maemo</a>
+<a title="Compuware" href="http://www.csdn.net/tag/compuware" target="_blank" onclick="LogClickCount(this,336);">Compuware</a>
+<a title="大数据" href="http://www.csdn.net/tag/%E5%A4%A7%E6%95%B0%E6%8D%AE" target="_blank" onclick="LogClickCount(this,336);">大数据</a>
+<a title="aptech" href="http://www.csdn.net/tag/aptech" target="_blank" onclick="LogClickCount(this,336);">aptech</a>
+<a title="Perl" href="http://www.csdn.net/tag/perl" target="_blank" onclick="LogClickCount(this,336);">Perl</a>
+<a title="Tornado" href="http://www.csdn.net/tag/tornado" target="_blank" onclick="LogClickCount(this,336);">Tornado</a>
+<a title="Ruby" href="http://www.csdn.net/tag/ruby" target="_blank" onclick="LogClickCount(this,336);">Ruby</a>
+<a title="Hibernate" href="http://www.csdn.net/hibernate" target="_blank" onclick="LogClickCount(this,336);">Hibernate</a>
+<a title="ThinkPHP" href="http://www.csdn.net/tag/thinkphp" target="_blank" onclick="LogClickCount(this,336);">ThinkPHP</a>
+<a title="HBase" href="http://www.csdn.net/tag/hbase" target="_blank" onclick="LogClickCount(this,336);">HBase</a>
+<a title="Pure" href="http://www.csdn.net/tag/pure" target="_blank" onclick="LogClickCount(this,336);">Pure</a>
+<a title="Solr" href="http://www.csdn.net/tag/solr" target="_blank" onclick="LogClickCount(this,336);">Solr</a>
+<a title="Angular" href="http://www.csdn.net/tag/angular" target="_blank" onclick="LogClickCount(this,336);">Angular</a>
+<a title="Cloud Foundry" href="http://www.csdn.net/tag/cloudfoundry" target="_blank" onclick="LogClickCount(this,336);">Cloud Foundry</a>
+<a title="Redis" href="http://www.csdn.net/tag/redis" target="_blank" onclick="LogClickCount(this,336);">Redis</a>
+<a title="Scala" href="http://www.csdn.net/tag/scala" target="_blank" onclick="LogClickCount(this,336);">Scala</a>
+<a title="Django" href="http://www.csdn.net/tag/django" target="_blank" onclick="LogClickCount(this,336);">Django</a>
+<a title="Bootstrap" href="http://www.csdn.net/tag/bootstrap" target="_blank" onclick="LogClickCount(this,336);">Bootstrap</a>
+    </div>
+</div>
+
+
+                        <div class="clear">
+                        </div>
+                    </div>                   
+                
+            </div>
+            <div id="side">
+    <div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/rznice" target="_blank">
+    <img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/1_rznice.jpg" title="访问我的空间" style="max-width:90%">
+    </a>
+    <br>
+    <span><a href="http://my.csdn.net/rznice" class="user_name" target="_blank">rznice</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_guanzhu&#39;])"></a>
+
+ <a href="javascript:void(0);" class="letter" title="[发私信]" onclick="window.open(&#39;http://msg.csdn.net/letters/model?receiver=rznice&#39;,&#39;_blank&#39;,&#39;height=350,width=700&#39;);_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_sixin&#39;])"></a>  
+</div>
+<div id="blog_medal">
+<div id="bms_box"></div></div>
+<ul id="blog_rank">
+    <li>访问：<span>261321次</span></li>
+    <li>积分：<span>3104分</span></li>
+    <li>排名：<span>第3452名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>58篇</span></li>
+    <li>转载：<span>226篇</span></li>
+    <li>译文：<span>0篇</span></li>
+    <li>评论：<span>31条</span></li>
+</ul>
+</ul>
+</div>
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字"></span>
+        <input id="btnSubmit" type="button" value="搜索" title="search in blog">
+        <input type="hidden" name="q" id="inputQ">
+        <input type="hidden" name="t" value="blog">
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        $("#btnSubmit").click(function () {           
+            search();
+        });
+
+        $("#frmSearch").submit(function () {
+            search();
+            return false;
+        });
+
+        function search()
+        {
+            var url = "http://so.csdn.net/so/search/s.do?q=" + encodeURIComponent($("#inputSearch").val()) + "&u=" + username + "&t=blog";
+            window.location.href = url;
+        }   
+    });
+</script><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1180511" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">oracle</a><span>(13)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1180512" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">c/c++</a><span>(18)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1180513" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">delphi</a><span>(39)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1390876" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">C#</a><span>(1)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1434476" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">domino</a><span>(3)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1470379" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">WEB</a><span>(3)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1520495" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">word</a><span>(1)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1832815" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">go</a><span>(11)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1881023" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">JavaScript</a><span>(14)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1885727" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">有限状态机</a><span>(1)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1891471" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">weblogic</a><span>(6)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1891475" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">linux</a><span>(2)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1931767" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">websocket</a><span>(4)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/1962113" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">nodejs</a><span>(2)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/2220307" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">java</a><span>(3)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/2392853" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">AngularJS</a><span>(0)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/2506407" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">jni</a><span>(0)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/rznice/article/category/2509609" onclick="_gaq.push([&#39;_trackEvent&#39;,&#39;function&#39;, &#39;onclick&#39;, &#39;blog_articles_wenzhangfenlei&#39;]); ">nginx</a><span>(2)</span>
+            </li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list"><li><a href="http://blog.csdn.net/rznice/article/month/2014/09">2014年09月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2014/08">2014年08月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2014/06">2014年06月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2014/05">2014年05月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2014/04">2014年04月</a><span>(3)</span></li><span class="hidelist" style="display:none;"><li><a href="http://blog.csdn.net/rznice/article/month/2014/03">2014年03月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2014/02">2014年02月</a><span>(28)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2014/01">2014年01月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/12">2013年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/11">2013年11月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/10">2013年10月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/09">2013年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/08">2013年08月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/07">2013年07月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/06">2013年06月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/05">2013年05月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/04">2013年04月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/03">2013年03月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/02">2013年02月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2013/01">2013年01月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/12">2012年12月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/11">2012年11月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/10">2012年10月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/09">2012年09月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/08">2012年08月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/07">2012年07月</a><span>(15)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/06">2012年06月</a><span>(19)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/05">2012年05月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/04">2012年04月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/03">2012年03月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/02">2012年02月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2012/01">2012年01月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/12">2011年12月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/11">2011年11月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/10">2011年10月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/09">2011年09月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/08">2011年08月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/07">2011年07月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/06">2011年06月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/05">2011年05月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/04">2011年04月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/03">2011年03月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/02">2011年02月</a><span>(13)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2011/01">2011年01月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/12">2010年12月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/11">2010年11月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/10">2010年10月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/09">2010年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/08">2010年08月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/07">2010年07月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/06">2010年06月</a><span>(13)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/05">2010年05月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/04">2010年04月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/03">2010年03月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/02">2010年02月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2010/01">2010年01月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2009/12">2009年12月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2009/11">2009年11月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2009/09">2009年09月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2009/08">2009年08月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/rznice/article/month/2009/07">2009年07月</a><span>(2)</span></li></span><div id="archive_list_button" class="list_closed">展开</div></div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head">
+    <span>       
+阅读排行    </span>
+</ul>
+
+<ul class="panel_body itemlist">
+<li>
+<a href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET.htm" title="Oracle死锁查询及处理">Oracle死锁查询及处理</a><span>(32605)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/6772000" title="Oracle中CASE WHEN的用法实例">Oracle中CASE WHEN的用法实例</a><span>(22731)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/5898028" title="如何彻底清除上网痕迹">如何彻底清除上网痕迹</a><span>(17940)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/7283494" title="weblogic性能调优">weblogic性能调优</a><span>(9694)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/4483547" title="Serv-U中文文件名或路径 无法上传与下载的解决办法">Serv-U中文文件名或路径 无法上传与下载的解决办法</a><span>(5792)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/7208992" title="feof()和EOF的用法—— C中文件结尾的判断">feof()和EOF的用法—— C中文件结尾的判断</a><span>(4837)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/6111422" title="Pro*C &quot;error LNK2001: unresolved external symbol &quot;void __cdecl sqlcxt&quot; 解决方法">Pro*C "error LNK2001: unresolved external symbol "void __cdecl sqlcxt" 解决方法</a><span>(3553)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/7765745" title="RealThinClient">RealThinClient</a><span>(3267)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/6778776" title="vs2010连接oracle 10g">vs2010连接oracle 10g</a><span>(2757)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/6189094" title="Delphi 中的 procedure of object ">Delphi 中的 procedure of object </a><span>(2624)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/6772000" title="Oracle中CASE WHEN的用法实例">Oracle中CASE WHEN的用法实例</a><span>(4)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/6112036" title="undefined reference to &#39;GetStockObject@4 linker error 的解决办法">undefined reference to 'GetStockObject@4 linker error 的解决办法</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/6111422" title="Pro*C &quot;error LNK2001: unresolved external symbol &quot;void __cdecl sqlcxt&quot; 解决方法">Pro*C "error LNK2001: unresolved external symbol "void __cdecl sqlcxt" 解决方法</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/7283494" title="weblogic性能调优">weblogic性能调优</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/6556115" title="UniDAC">UniDAC</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/5169277" title="MySql免安装版的相关配置">MySql免安装版的相关配置</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/7208992" title="feof()和EOF的用法—— C中文件结尾的判断">feof()和EOF的用法—— C中文件结尾的判断</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/7651248" title="C语言中的EOF">C语言中的EOF</a><span>(2)</span>
+</li>
+<li>
+<a href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET.htm" title="Oracle死锁查询及处理">Oracle死锁查询及处理</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/rznice/article/details/6566978" title="delphi中Record 和Packed Record的区别">delphi中Record 和Packed Record的区别</a><span>(1)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel tracking-ad" data-mod="popu_4">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"><iframe id="ad_frm_2" frameborder="0" scrolling="no" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ad.htm" style="border-width: 0px; overflow: hidden; width: 182px; height: 200px;"></iframe></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+   
+         <a href="http://blog.csdn.net/rznice/article/details/7283494#comments">weblogic性能调优</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/iamaj2eeprogrammer" class="user_name">iamaj2eeprogrammer</a>:
+学习了
+    </p>
+    </li>
+    <li>
+   
+         <a href="http://blog.csdn.net/rznice/article/details/7208992#comments">feof()和EOF的用法—— C中文件结尾的判断</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/ke7in1314" class="user_name">浩淇</a>:
+写的不错
+    </p>
+    </li>
+    <li>
+   
+         <a href="http://blog.csdn.net/rznice/article/details/6683905#comments">Oracle死锁查询及处理</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/gavin_luo" class="user_name">gavinluo</a>:
+这解决不了问题，是临时处理的办法，我想看到的是分析死锁造成原因，如何写程序避免死锁
+    </p>
+    </li>
+    <li>
+   
+         <a href="http://blog.csdn.net/rznice/article/details/7698110#comments">Oracle  正则表达式</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/zhglance" class="user_name">zhglance</a>:
+学习了,文章就是好,汇多家之言! 顶顶!!!
+    </p>
+    </li>
+    <li>
+   
+         <a href="http://blog.csdn.net/rznice/article/details/7698110#comments">weblogic性能调优</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/wolf_childan" class="user_name">wolf_childan</a>:
+项目在客户的weblogic上启动很慢，在自己的weblogic上启动很快，不知是什么原因？
+    </p>
+    </li>
+    <li>
+   
+         <a href="http://blog.csdn.net/rznice/article/details/5169277#comments">MySql免安装版的相关配置</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/wuxinliulei" class="user_name">java是一门好语言</a>:
+改天试试
+    </p>
+    </li>
+    <li>
+   
+         <a href="http://blog.csdn.net/rznice/article/details/8509288#comments">IDFTP获取ftp文件列表中文乱码的解决办法</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/lenovo455" class="user_name">lenovo455</a>:
+我用的delphixe版本，设置成这样IdFTP1.IOHandler.DefStringEncod...
+    </p>
+    </li>
+    <li>
+   
+         <a href="http://blog.csdn.net/rznice/article/details/7651248#comments">C语言中的EOF</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/aa0907060113" class="user_name">aa0907060113</a>:
+太神了，虽然我用的是windows系统，但是我认为可以从你的分析中得到启发；这个问题困扰我好久了，我...
+    </p>
+    </li>
+    <li>
+   
+         <a href="http://blog.csdn.net/rznice/article/details/6111422#comments">Pro*C "error LNK2001: unresolved external symbol "void __cdecl sqlcxt" 解决方法</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/luxer_1985" class="user_name">兰博基里</a>:
+sqlcxt ……不是这个原因！
+    </p>
+    </li>
+    <li>
+   
+         <a href="http://blog.csdn.net/rznice/article/details/6111422#comments">MySql免安装版的相关配置</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/Vanceinfo_liuxiang" class="user_name">Vanceinfo_liuxiang</a>:
+E:\tools\mysql-5.0.22-win32\bin&gt;mysql -uroot -pEnt...
+    </p>
+    </li>
+</ul>
+</div>
+<div id="custom_column_997000" class="panel">
+<ul class="panel_head"><span>链接</span></ul>
+<ul class="panel_body">
+
+<ul>
+<li><a href="http://blog.csdn.net/inthirties/" target="_blank">三十而立</a> </li><li><a href="http://www.blogjava.net/decode360/" target="_blank">decode360</a> </li><li><a href="http://blog.csdn.net/supermegaboy/" target="_blank">supermegaboy C</a></li><li><a href="http://blog.csdn.net/zhmxy555/" target="_blank">zhmxy555 VC学习</a> </li><li><a href="http://www.cnblogs.com/MaxWoods/" target="_blank">MaxWoods delphi</a></li><li><a href="http://www.cnblogs.com/xalion/" target="_blank">delphi 新窑洞</a> </li><li><a href="http://www.oracledba.com.cn/blog/" target="_blank">三少(David.Guo)</a></li><li><a href="http://blog.csdn.net/a9529lty/" target="_blank">a9529lty oracle</a> </li><li><a href="http://www.cnblogs.com/DxSoft/" target="_blank">不得闲工作室</a></li><li><a href="http://hi.baidu.com/tag/Delphi/feeds/" target="_blank">delphi</a> </li><li><a href="http://www.samool.com/" target="_blank">samool delphi</a></li><li><a href="http://yangwei.blogbus.com/" target="_blank">C</a> </li><li><a href="http://luluww.bokee.com/" target="_blank">luluww</a></li><li><a href="http://blog.csdn.net/henreash" target="_blank">henreash</a> </li><li><a href="http://www.cnblogs.com/skynet" target="_blank">Cskynet</a></li><li><a href="http://www.cnblogs.com/TankXiao/" target="_blank">TankXiao</a> </li><li><a href="http://blog.csdn.net/haoel/" target="_blank">haoel</a></li><li><a href="http://blog.csdn.net/shlazww" target="_blank">shlazww golang</a> </li><li><a href="http://my.oschina.net/huangyong/blog/158380" target="_blank">Java Web 框架</a></li><li><a href="http://my.oschina.net/qiangzigege" target="_blank">强子哥哥</a> </li><li><a href="http://blogs.readthedocs.org/zh_CN/latest/" target="_blank">ACE study</a></li><li><a href="http://www.acejoy.com/ace/thread-3225-1-1.html" target="_blank">Nginx源码剖析之内存池</a></li><li><a href="http://blog.sina.com.cn/s/articlelist_1157240623_0_1.html" target="_blank">小红鱼</a></li></ul>
+
+</ul>
+</div>    </div>
+    <div class="clear">
+    </div>
+</div>
+
+            <div class="clear">
+            </div>
+        </div>
+        
+
+<script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/cnick.js"></script>
+<script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/newblog.min.js"></script>
+
+
+<script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/showblogmedal.ashx"></script>
+<script type="text/javascript">
+    document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date() / 120000).toString(36) + '="></' + 'script>');
+</script><script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/publib_footer.js"></script><link rel="stylesheet" type="text/css" href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/pub_footer_2012.css"><div id="pub_footerall" class="pub_footerall"><dl><dt></dt> <dd><a href="http://www.csdn.net/company/about.html" target="_blank">公司简介</a>|<a href="http://www.csdn.net/company/recruit.html" target="_blank">招贤纳士</a>|<a href="http://www.csdn.net/company/marketing.html" target="_blank">广告服务</a>|<a href="http://www.csdn.net/company/account.html" target="_blank">银行汇款帐号</a>|<a href="http://www.csdn.net/company/contact.html" target="_blank">联系方式</a>|<a href="http://www.csdn.net/company/statement.html" target="_blank">版权声明</a>|<a href="http://www.csdn.net/company/layer.html" target="_blank">法律顾问</a>|<a href="mailto:webmaster@csdn.net">问题报告</a>|<a target="_blank" href="http://www.csdn.net/friendlink.html">合作伙伴</a>|<a href="http://bbs.csdn.net/forums/Service" target="_blank">论坛反馈</a></dd><dd><a href="http://wpa.qq.com/msgrd?v=3&uin=2355263776&site=qq&menu=yes" target="_blank" class="qq">网站客服</a> <a href="http://wpa.qq.com/msgrd?v=3&uin=2251809102&site=qq&menu=yes" target="_blank" class="qq">杂志客服</a> <a href="http://e.weibo.com/csdnsupport/profile" target="_blank" class="weibo">微博客服</a> <a href="mailto:webmaster@csdn.net" class="email" title="联系邮箱">webmaster@csdn.net</a> <span class="phone" title="服务热线">400-600-2320</span></dd><dd>京&nbsp;ICP&nbsp;证&nbsp;070598&nbsp;号</dd><dd>北京创新乐知信息技术有限公司 版权所有</dd><dd>江苏乐知网络技术有限公司 提供商务支持</dd><dd>Copyright © 1999-2014, CSDN.NET, All Rights Reserved&nbsp;<a href="http://www.hd315.gov.cn/beian/view.asp?bianhao=010202001032100010" target="_blank"><img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/gongshang_logos.gif" alt="GongshangLogo" title=""></a></dd></dl></div><div id="note1" class="csdn_note" style="display:none; position:absolute; z-index:9999; width:440px">  <span class="notice_top_arrow"><span class="inner"></span></span>  <div class="box"></div></div><div class="csdn_notice_tip" style="display: none; position: absolute; z-index: 9990; width: 170px;">  <iframe src="about:blank" frameborder="0" scrolling="no" style="z-index:-1;position:absolute;top:0;left:0;width:100%;height:100%;background:transparent"></iframe>  <div class="tip_text">您有<strong>0</strong>条新通知</div>  <a href="javascript:void 0" class="close2"></a></div><script id="noticeScript" type="text/javascript" btnid="header_notice_num" wrapid="note1" count="5" subcount="5" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/notify.js"></script>
+    <script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script><img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/pv.aspx" border="0" width="0" height="0">
+<script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/counter.js"></script><script type="text/javascript" charset="UTF-8" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/msg.popup.js"></script>
+<script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ad-blog.js"></script><script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ad-ms982.js"></script>
+<script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ad-ms983_2.js"></script>
+<script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ad-ms991_3.js"></script>
+
+<script type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/count.js"></script><iframe src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/logs.htm" frameborder="0" width="0" height="0"></iframe>
+<script type="text/javascript">
+    $(function () {
+        function __get_code_toolbar(snippet_id) {
+            return $("<a href='https://code.csdn.net/snippets/"
+                    + snippet_id
+                    + "' target='_blank' title='在CODE上查看代码片' style='text-indent:0;'><img src='https://code.csdn.net/assets/CODE_ico.png' width=12 height=12 alt='在CODE上查看代码片' style='position:relative;top:1px;left:2px;'/></a>"
+                    + "<a href='https://code.csdn.net/snippets/"
+                    + snippet_id
+                    + "/fork' target='_blank' title='派生到我的代码片'  style='text-indent:0;'><img src='https://code.csdn.net/assets/ico_fork.svg' width=12 height=12 alt='派生到我的代码片' style='position:relative;top:2px;left:2px;'/></a>");
+        }
+        
+        $("[code_snippet_id]").each(function () {
+            __s_id = $(this).attr("code_snippet_id");
+            if (__s_id != null && __s_id != "" && __s_id != 0 && parseInt(__s_id) > 70020) {
+                __code_tool = __get_code_toolbar(__s_id);
+                $(this).prev().find(".tools").append(__code_tool);
+            }
+        });
+    });
+</script>
+
+    </div>
+      <!--new top-->
+    
+    <script id="csdn-toolbar-id" btnid="header_notice_num" wrapid="note1" count="5" subcount="5" type="text/javascript" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/toolbar.js"></script>
+     <!--new top-->
+
+
+<div id="tag-suggest-pop" style="display: block;">
+  <div class="relative">
+    <div class="close"></div>
+    <div class="content"><div><span>更多相关资源：</span><a href="http://www.csdn.net/tag/oracle" title="关于 oracle 的主题" target="_blank">oracle</a></div></div>
+  </div>
+</div><iframe src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/ibm-ca-q3-softlayer-homepage-banner-728-90-30k.htm" style="width: 1px; height: 1px; position: absolute; visibility: hidden;"></iframe><link href="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/message_pop.css" rel="stylesheet" type="text/css"><div id="_popup_msg_container" style="display: block;">
+
+<div wistate="max" id="im_popupWindow_miniMsg" class="im_popupWindow" style="display: block; height: 250px;">
+	<h6 class="wi_draggable"><span>
+</span><a onclick="_message_tips_pop(&#39;down&#39;);return false;"><img alt="close" class="founctionpic3" src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/pic_close.gif"></a></h6>
+    <div id="im_popupWindow_miniMsgContent" class="wi_content">
+		<div class="kuai">
+			<div style="width:280px;"><a href="http://huiyi.csdn.net/activity/product/goods_list?project_id=1399" target="_blank"><img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/菜鸟网络弹窗0916-01.jpg" alt="" border="0" style="border:0;" title=""></a></div>
+		</div>
+	</div>
+<div class="content_qq"><span onclick="window.open(&#39;&#39;)" target="_blank"><font color="red">
+</font></span>
+ </div>
+ 
+ 
+</div>
+</div><img src="./Oracle死锁查询及处理 - rznice的专栏 - 博客频道 - CSDN.NET_files/count_new.php" style="display: none;"></body></html>

@@ -1,0 +1,1919 @@
+CREATE OR REPLACE PACKAGE BODY applys IS
+  
+    --根据角色和部门获取用户信息               
+    CURSOR cur_getauditersbyroleunit(p_role IN VARCHAR2, p_dept IN VARCHAR2) IS
+      SELECT ttt.psn_account,
+             ttt.psn_name,
+             ttt.psn_desc,
+             t.role_name,
+             t.org_name
+        FROM org_person ttt,
+             org_role_psn_map tt1,
+             org_role_psn_map tt2,
+             (SELECT MAX(t.adminunit) role_id,
+                     MAX(t.adminunitname) role_name,
+                     MAX(t.admindept) org_id,
+                     MAX(t.admindeptname) org_name
+                FROM (SELECT decode(t.owner_unit_id, 'adminUnit', t.role_id, '') adminunit,
+                             decode(t.owner_unit_id, 'adminUnit', t.role_name, '') adminunitname,
+                             decode(t.owner_unit_id, 'adminDept', t.role_id, '') admindept,
+                             decode(t.owner_unit_id, 'adminDept', t.role_name, '') admindeptname
+                        FROM (SELECT t.role_id,
+                                     t.role_name,
+                                     t.owner_unit_id
+                                FROM org_role t
+                               WHERE (t.owner_unit_id = 'adminUnit' AND t.role_name = p_role)
+                                  OR (t.owner_unit_id = 'adminDept' AND t.role_name = p_dept)) t) t) t
+       WHERE ttt.psn_id = tt1.psn_id
+         AND tt1.psn_id = tt2.psn_id
+         AND tt2.role_id = t.org_id
+         AND tt1.role_id = t.role_id
+         AND ttt.active_flag = '1'
+			 ORDER BY ttt.psn_account;
+
+	--获取角色分类信息('ROLEKIND_SALESORG','ROLEKIND_PRODUCT','adminRole')
+	FUNCTION getrolekind(in_role_code IN VARCHAR2) RETURN VARCHAR2 IS
+		RESULT  VARCHAR2(100);
+		lcl_sql VARCHAR2(250);
+		--    parent_role_code  VARCHAR2(100);
+	BEGIN
+	
+		RESULT := in_role_code;
+	
+		WHILE RESULT NOT IN ('ROLEKIND_PL', 'ROLEKIND_GM', 'ROLEKIND_JYT', 'ROLEKIND_XN', 'adminRole') LOOP
+			lcl_sql := 'SELECT p.role_name parent_role_code ' || 'FROM org_role  t ,org_role p ' ||
+								 'WHERE p.role_id = t.parent_role_id ' || 'AND t.owner_unit_id = ''adminUnit'' ' ||
+								 'AND t.role_name = :RESULT ';
+		
+			EXECUTE IMMEDIATE lcl_sql
+				INTO RESULT
+				USING RESULT;
+		
+		END LOOP;
+	
+		RETURN RESULT;
+	
+	EXCEPTION
+		WHEN OTHERS THEN
+			RETURN RESULT;
+	END getrolekind;
+
+	--获取部门分类信息('0100','0200','0300','0000','0900')
+	FUNCTION getdeptkind(in_dept_code IN VARCHAR2) RETURN VARCHAR2 IS
+		RESULT  VARCHAR2(100);
+		lcl_sql VARCHAR2(250);
+		--    parent_role_code  VARCHAR2(100);
+	BEGIN
+	
+		RESULT := in_dept_code;
+	
+		WHILE RESULT NOT IN ('0100', '0200', '0300', '0000','0900') LOOP
+			lcl_sql := 'SELECT p.role_name parent_role_code ' || 'FROM org_role  t ,org_role p ' ||
+								 'WHERE p.role_id = t.parent_role_id ' || 'AND t.owner_unit_id = ''adminDept'' ' ||
+								 'AND t.role_name = :RESULT ';
+		
+			EXECUTE IMMEDIATE lcl_sql
+				INTO RESULT
+				USING RESULT;
+		
+		END LOOP;
+	
+		RETURN RESULT;
+	
+	EXCEPTION
+		WHEN OTHERS THEN
+			RETURN RESULT;
+	END getdeptkind;
+  
+  --根据事业部申请客户虚拟组织获取下节审批人虚拟组织 Lvdecheng 2012-05-31
+  FUNCTION getOrgCode(in_virOrgCode IN VARCHAR2) RETURN VARCHAR2 IS
+    RESULT  VARCHAR2(100);
+		lcl_sql VARCHAR2(250);
+  BEGIN 
+    RESULT := in_virOrgCode;  
+    lcl_sql := 'select distinct virtual_org from HM_CUST_PL_VIRTUAL_ORG t ' || 
+               'where t.VIRTUAL_LAST_ORG = :RESULT' ;
+    EXECUTE IMMEDIATE lcl_sql 
+         INTO RESULT 
+         USING RESULT;
+    RETURN RESULT; 
+    EXCEPTION
+		WHEN OTHERS THEN
+			RETURN RESULT;
+  END getOrgCode;
+       
+  FUNCTION func_apply_email_content
+  (
+    in_master_type IN VARCHAR2,
+    in_apply_id    IN VARCHAR2,
+    in_audit_recommend in varchar2
+  ) RETURN STRING IS
+    CURSOR cur_apply_customer(p_apply_id IN VARCHAR2) IS
+      SELECT *
+        FROM hm_apply_customer
+       WHERE apply_id = p_apply_id
+         AND delete_flag = '0'
+       ORDER BY item_no;
+  
+    CURSOR cur_apply_vendor(p_apply_id IN VARCHAR2) IS
+      SELECT *
+        FROM hm_apply_vendor
+       WHERE apply_id = p_apply_id
+         AND delete_flag = '0'
+       ORDER BY item_no;
+   CURSOR cur_apply_company(p_apply_id IN VARCHAR2) IS
+      SELECT *
+        FROM hm_apply_company
+       WHERE apply_id = p_apply_id
+         AND delete_flag = '0'
+       ORDER BY item_no;
+    CURSOR cur_apply_material(p_apply_id IN VARCHAR2) IS
+      SELECT *
+        FROM hm_apply_material
+       WHERE apply_id = p_apply_id
+         AND delete_flag = '0'
+       ORDER BY item_no;
+  
+
+/*    CURSOR cur_apply_customerdel(p_apply_id IN VARCHAR2) IS
+      SELECT *
+        FROM hm_apply_customerdel
+       WHERE apply_id = p_apply_id
+         AND delete_flag = '0'
+       ORDER BY item_no;
+  
+    CURSOR cur_apply_bank(p_apply_id IN VARCHAR2) IS
+      SELECT *
+        FROM hm_apply_bank
+       WHERE apply_id = p_apply_id
+         AND delete_flag = '0'
+       ORDER BY item_no;
+*/         
+    CURSOR cur_applys(p_apply_id IN VARCHAR2) IS
+      SELECT *
+        FROM hm_applys
+       WHERE apply_id = p_apply_id;
+  
+    l_hm_applys hm_applys%ROWTYPE;
+  
+    ls_ret   VARCHAR2(4000) := '';
+    ls_text  VARCHAR2(4000) := '';
+    ls_text2 VARCHAR2(200) := '';
+    l_length INTEGER;
+    lcl_desc_en  varchar2(200);
+  BEGIN
+    ls_ret := '';
+  
+    FOR cur_rows IN cur_applys(in_apply_id) LOOP
+      l_hm_applys := cur_rows;
+    END LOOP;
+  
+    IF in_master_type = 'CUSTOMER' THEN
+      ----ls_text := '<PRE>';
+      ----ls_text := ls_text||'<font size=3 face="sans-serif">ItemNo&#9 AccGrp&#9 Cust.Num&#9 CustomerName</font><br>' ;
+      ls_text := '<br>';
+      ls_text := ls_text || '申请单编号：' || l_hm_applys.apply_id || ' 申请人： ' || l_hm_applys.apply_by ||
+                 ' 申请于： ' || to_char(l_hm_applys.created, 'yyyy-mm-dd') || '<br>';
+      ls_text := ls_text || '业务编码：' || l_hm_applys.business_code || '<br>'||'审批意见：'||in_audit_recommend||'<br>审批时间：'||to_char(sysdate, 'yyyy-mm-dd hh24:mi:ss')||'<br><br>';
+      ls_text := ls_text || '<font size=3 face="sans-serif">' || '序号' || '&nbsp;' || '账户组' || '&nbsp;' ||
+                 '客户编码' || '&nbsp;&nbsp;&nbsp;' || '客户名称' || '</font><br>';
+      FOR cur_rows IN cur_apply_customer(in_apply_id) LOOP
+        l_length := lengthb(ls_text);
+        IF l_length < 3500 THEN
+          ----ls_text := ls_text||'<font size=3 face="sans-serif">'||CUR_ROWS.Item_No||'&#9 '||CUR_ROWS.Account_Group||'&#9 '||CUR_ROWS.Customer_Number||'&#9 '||CUR_ROWS.Customer_Name||'</font><br>';
+          ls_text := ls_text || '<font size=3 face="sans-serif">' || cur_rows.item_no || '&nbsp;&nbsp;&nbsp;' ||
+                     cur_rows.account_group || '&nbsp;&nbsp;&nbsp;' || cur_rows.customer_number || '&nbsp;' ||
+                     cur_rows.customer_name || '</font><br>';
+        ELSE
+          ls_text2 := '<br>还有更多条目，篇幅所限不能全部展示。';
+        END IF;
+      END LOOP;
+      ls_ret := ls_text || ls_text2;
+      ----LS_RET := LS_RET||'</PRE>';
+      ls_ret := ls_ret || '<br>';
+    ELSIF in_master_type = 'VENDOR' THEN
+      ----ls_text := '<PRE>';
+      ----ls_text := ls_text||'<font size=3 face="sans-serif">ItemNo&#9 AccGrp&#9 Cust.Num&#9 VENDORName</font><br>' ;
+      ls_text := '<br>';
+      ls_text := ls_text || '申请单编号：' || l_hm_applys.apply_id || ' 申请人： ' || l_hm_applys.apply_by ||
+                 ' 申请于： ' || to_char(l_hm_applys.created, 'yyyy-mm-dd') || '<br>';
+      ls_text := ls_text || '业务编码：' || l_hm_applys.business_code || '<br>'||'审批意见：'||in_audit_recommend||'<br>审批时间：'||to_char(sysdate, 'yyyy-mm-dd hh24:mi:ss')||'<br><br>';
+      ls_text := ls_text || '<font size=3 face="sans-serif">' || '序号' || '&nbsp;' || '账户组' || '&nbsp;' ||
+                 '供应商编码' || '&nbsp;&nbsp;&nbsp;' || '供应商名称' || '</font><br>';
+      FOR cur_rows IN cur_apply_VENDOR(in_apply_id) LOOP
+        l_length := lengthb(ls_text);
+        IF l_length < 3500 THEN
+          ----ls_text := ls_text||'<font size=3 face="sans-serif">'||CUR_ROWS.Item_No||'&#9 '||CUR_ROWS.Account_Group||'&#9 '||CUR_ROWS.VENDOR_Number||'&#9 '||CUR_ROWS.VENDOR_Name||'</font><br>';
+          ls_text := ls_text || '<font size=3 face="sans-serif">' || cur_rows.item_no || '&nbsp;&nbsp;&nbsp;' ||
+                     cur_rows.account_grp_code || '&nbsp;&nbsp;&nbsp;' || cur_rows.VENDOR_CODE || '&nbsp;' ||
+                     cur_rows.VENDOR_name || '</font><br>';
+        ELSE
+          ls_text2 := '<br>还有更多条目，篇幅所限不能全部展示。';
+        END IF;
+      END LOOP;
+      ls_ret := ls_text || ls_text2;
+      ----LS_RET := LS_RET||'</PRE>';
+      ls_ret := ls_ret || '<br>';
+    ELSIF in_master_type = 'COMPANY' THEN
+      ----ls_text := '<PRE>';
+      ----ls_text := ls_text||'<font size=3 face="sans-serif">ItemNo&#9 AccGrp&#9 Cust.Num&#9 VENDORName</font><br>' ;
+      ls_text := '<br>';
+      ls_text := ls_text || '申请单编号：' || l_hm_applys.apply_id || ' 申请人： ' || l_hm_applys.apply_by ||
+                 ' 申请于： ' || to_char(l_hm_applys.created, 'yyyy-mm-dd') || '<br>';
+      ls_text := ls_text || '业务编码：' || l_hm_applys.business_code || '<br>'||'审批意见：'||in_audit_recommend||'<br>审批时间：'||to_char(sysdate, 'yyyy-mm-dd hh24:mi:ss')||'<br><br>';
+      ls_text := ls_text || '<font size=3 face="sans-serif">' || '序号' || '&nbsp;' ||
+                 '公司编码' || '&nbsp;&nbsp;&nbsp;' || '公司名称' || '</font><br>';
+      FOR cur_rows IN cur_apply_company(in_apply_id) LOOP
+        l_length := lengthb(ls_text);
+        IF l_length < 3500 THEN
+          ----ls_text := ls_text||'<font size=3 face="sans-serif">'||CUR_ROWS.Item_No||'&#9 '||CUR_ROWS.Account_Group||'&#9 '||CUR_ROWS.VENDOR_Number||'&#9 '||CUR_ROWS.VENDOR_Name||'</font><br>';
+          ls_text := ls_text || '<font size=3 face="sans-serif">' || cur_rows.item_no || '&nbsp;&nbsp;&nbsp;' ||
+                      cur_rows.company_code || '&nbsp;' ||
+                     cur_rows.company_name || '</font><br>';
+        ELSE
+          ls_text2 := '<br>还有更多条目，篇幅所限不能全部展示。';
+        END IF;
+      END LOOP;
+      ls_ret := ls_text || ls_text2;
+      ----LS_RET := LS_RET||'</PRE>';
+      ls_ret := ls_ret || '<br>';    
+    ELSIF in_master_type = 'MATERIAL' THEN
+      ----ls_text := '<PRE>';
+      ----ls_text := ls_text||'<font size=3 face="sans-serif">ItemNo&#9 AccGrp&#9 Cust.Num&#9 VENDORName</font><br>' ;
+      ls_text := '<br>';
+      if instr(l_hm_applys.business_code,'INDIA') > 0 then
+        ls_text := ls_text || 'Apply Id：' || l_hm_applys.apply_id || ' Apply By： ' || l_hm_applys.apply_by ||
+                   ' Application Time： ' || to_char(l_hm_applys.created, 'yyyy-mm-dd') || '<br>';
+        ls_text := ls_text || 'BusinessCode：' || l_hm_applys.business_code || '<br>'||'Audit Result：'||in_audit_recommend||'<br>Audit Time：'||to_char(sysdate, 'yyyy-mm-dd hh24:mi:ss')||'<br><br>';
+        ls_text := ls_text || '<font size=3 face="sans-serif">' || 'Item No' || '&nbsp;' || 'Material Type' || '&nbsp;' ||
+                   'Material Number' || '&nbsp;&nbsp;&nbsp;' || 'Material Description' || '</font><br>';
+        FOR cur_rows IN cur_apply_material(in_apply_id) LOOP
+          l_length := lengthb(ls_text);
+          IF l_length < 3500 THEN
+            ----ls_text := ls_text||'<font size=3 face="sans-serif">'||CUR_ROWS.Item_No||'&#9 '||CUR_ROWS.Account_Group||'&#9 '||CUR_ROWS.VENDOR_Number||'&#9 '||CUR_ROWS.VENDOR_Name||'</font><br>';
+            --针对印度，用多语言描述中的英文描述来代替
+            lcl_desc_en := '';
+            select max(b.description) into lcl_desc_en from hm_mtl_general a, hm_mtl_desc_data b where b.language = 'E' and b.material_id = a.row_id and a.material_code = cur_rows.material_code;
+            if lcl_desc_en is null then
+              lcl_desc_en := cur_rows.material_descrition;
+            end if;
+            if cur_rows.material_descrition_en is not null then
+              lcl_desc_en := cur_rows.material_descrition_en;
+            end if;
+            
+            ls_text := ls_text || '<font size=3 face="sans-serif">' || cur_rows.item_no || '&nbsp;&nbsp;&nbsp;' ||
+                       cur_rows.material_type || '&nbsp;&nbsp;&nbsp;' || cur_rows.material_code || '&nbsp;' ||
+                       lcl_desc_en || '</font><br>';
+          ELSE
+            ls_text2 := '<br>There are more entries, the limited length can not all show.';
+          END IF;
+        END LOOP; 
+      else        
+        ls_text := ls_text || '申请单编号：' || l_hm_applys.apply_id || ' 申请人： ' || l_hm_applys.apply_by ||
+                   ' 申请于： ' || to_char(l_hm_applys.created, 'yyyy-mm-dd') || '<br>';
+        ls_text := ls_text || '业务编码：' || l_hm_applys.business_code || '<br>'||'审批意见：'||in_audit_recommend||'<br>审批时间：'||to_char(sysdate, 'yyyy-mm-dd hh24:mi:ss')||'<br><br>';
+        ls_text := ls_text || '<font size=3 face="sans-serif">' || '序号' || '&nbsp;' || '物料类型' || '&nbsp;' ||
+                   '物料编码' || '&nbsp;&nbsp;&nbsp;' || '物料名称' || '</font><br>';
+        FOR cur_rows IN cur_apply_material(in_apply_id) LOOP
+          l_length := lengthb(ls_text);
+          IF l_length < 3500 THEN
+            ----ls_text := ls_text||'<font size=3 face="sans-serif">'||CUR_ROWS.Item_No||'&#9 '||CUR_ROWS.Account_Group||'&#9 '||CUR_ROWS.VENDOR_Number||'&#9 '||CUR_ROWS.VENDOR_Name||'</font><br>';
+            ls_text := ls_text || '<font size=3 face="sans-serif">' || cur_rows.item_no || '&nbsp;&nbsp;&nbsp;' ||
+                       cur_rows.material_type || '&nbsp;&nbsp;&nbsp;' || cur_rows.material_code || '&nbsp;' ||
+                       cur_rows.material_descrition || '</font><br>';
+          ELSE
+            ls_text2 := '<br>还有更多条目，篇幅所限不能全部展示。';
+          END IF;
+        END LOOP; 
+      end if;
+      ls_ret := ls_text || ls_text2;
+      ----LS_RET := LS_RET||'</PRE>';
+      ls_ret := ls_ret || '<br>';
+/*    ELSIF in_master_type = 'CUSTOMERDEL' THEN
+      ----ls_text := '<PRE>';
+      ----ls_text := ls_text||'<font size=3 face="sans-serif">ItemNo&#9 AccGrp&#9 Cust.Num&#9 CustomerName</font><br>' ;
+      ls_text := '<br>';
+      ls_text := ls_text || 'Business Code :' || l_hm_applys.business_code || '<br><br>';
+      ls_text := ls_text || '<font size=3 face="sans-serif">' || 'ItemNo' || '&nbsp;' || 'AccGrp' || '&nbsp;' ||
+                 'Cust.Num' || '&nbsp;&nbsp;&nbsp;' || 'CustomerName' || '</font><br>';
+      FOR cur_rows IN cur_apply_customerdel(in_apply_id) LOOP
+        l_length := lengthb(ls_text);
+        IF l_length < 3500 THEN
+          ----ls_text := ls_text||'<font size=3 face="sans-serif">'||CUR_ROWS.Item_No||'&#9 '||CUR_ROWS.Account_Group||'&#9 '||CUR_ROWS.Customer_Number||'&#9 '||CUR_ROWS.Customer_Name||'</font><br>';
+          ls_text := ls_text || '<font size=3 face="sans-serif">' || cur_rows.item_no || '&nbsp;&nbsp;&nbsp;' ||
+                     cur_rows.account_group || '&nbsp;&nbsp;&nbsp;' || cur_rows.customer_number || '&nbsp;' ||
+                     cur_rows.customer_name || '</font><br>';
+        ELSE
+          ls_text2 := '<br>Have more other rows, not display!';
+        END IF;
+      END LOOP;
+      ls_ret := ls_text || ls_text2;
+      ----LS_RET := LS_RET||'</PRE>';
+      ls_ret := ls_ret || '<br>';
+    
+    ELSIF in_master_type = 'MATERIAL' THEN
+      ----ls_text := '<PRE>';
+      ----ls_text := ls_text||'<font size=3 face="sans-serif">ItemNo&#9 Division&#9 Mtl.Num&#9 MaterialName</font><br>' ;
+      ls_text := '<br>';
+      ls_text := ls_text || 'Business Code :' || l_hm_applys.business_code || '<br><br>';
+      ls_text := ls_text || '<font size=3 face="sans-serif">' || 'ItemNo' || '&nbsp;' || 'Divison' || '&nbsp;' ||
+                 'Mtl.Num' || '&nbsp;&nbsp;&nbsp;' || 'MaterialName' || '</font><br>';
+      FOR cur_rows IN cur_apply_material(in_apply_id) LOOP
+        l_length := lengthb(ls_text);
+        IF l_length < 3500 THEN
+          ----ls_text := ls_text||'<font size=3 face="sans-serif">'||CUR_ROWS.Item_No||'&#9 '||CUR_ROWS.Product_Division||'&#9 '||CUR_ROWS.Material_Number||'&#9 '||CUR_ROWS.Material_Description_En||'</font><br>';
+          ls_text := ls_text || '<font size=3 face="sans-serif">' || cur_rows.item_no || '&nbsp;&nbsp;&nbsp;' ||
+                     cur_rows.product_division || '&nbsp;&nbsp;&nbsp;' || cur_rows.material_number || '&nbsp;' ||
+                     cur_rows.material_description_en || '</font><br>';
+        ELSE
+          ls_text2 := '<br>Have more other rows, not display!';
+				END IF;
+			END LOOP;
+			ls_ret := ls_text || ls_text2;
+			----LS_RET := LS_RET||'</PRE>';
+			ls_ret := ls_ret || '<br>';
+		
+		ELSIF in_master_type = 'BANKS' THEN
+			----ls_text := '<PRE>';
+			----ls_text := ls_text||'<font size=3 face="sans-serif">ItemNo&#9 Division&#9 Mtl.Num&#9 MaterialName</font><br>' ;
+			ls_text := '<br>';
+			ls_text := ls_text || 'Business Code :' || l_hm_applys.business_code || '<br><br>';
+			ls_text := ls_text || '<font size=3 face="sans-serif">' || 'ItemNo' || '&nbsp;' || 'Divison' || '&nbsp;' ||
+								 'Mtl.Num' || '&nbsp;&nbsp;&nbsp;' || 'MaterialName' || '</font><br>';
+			FOR cur_rows IN cur_apply_bank(in_apply_id) LOOP
+				l_length := lengthb(ls_text);
+				IF l_length < 3500 THEN
+					----ls_text := ls_text||'<font size=3 face="sans-serif">'||CUR_ROWS.Item_No||'&#9 '||CUR_ROWS.Product_Division||'&#9 '||CUR_ROWS.Material_Number||'&#9 '||CUR_ROWS.Material_Description_En||'</font><br>';
+					ls_text := ls_text || '<font size=3 face="sans-serif">' || cur_rows.item_no || '&nbsp;&nbsp;&nbsp;' ||
+										 cur_rows.BANK_COUNTRY || '&nbsp;&nbsp;&nbsp;' || cur_rows.BANK_BRANCH_CODE || '&nbsp;' ||
+										 cur_rows.BANK_NAME || '</font><br>';
+				ELSE
+					ls_text2 := '<br>Have more other rows, not display!';
+				END IF;
+			END LOOP;
+			ls_ret := ls_text || ls_text2;
+			----LS_RET := LS_RET||'</PRE>';
+			ls_ret := ls_ret || '<br>';    
+*/		END IF;
+	
+		RETURN ls_ret;
+	
+	EXCEPTION
+		WHEN OTHERS THEN
+			RETURN ls_ret;
+	END func_apply_email_content;
+
+	/****************************************************************
+  功能描述：申请单审核处理
+  作者：    ZhangBiao
+  时间：    2009-04-01       
+         
+  输入参数说明： IN_APPLY_ID           申请单ID
+                 IN_AUDIT_ORDER        审批流序号[0,...,999]
+                 IN_AUDIT_BY           审批人员
+                 IN_AUDIT_RESULT       审批结论[0,Y,N]
+                 IN_AUDIT_RECOMMEND       审批建议
+                 IN_PREDEFINE_AUDIT_BY    下节预定义审批人
+  输出参数说明： RETCODE               执行结果编码 E,S
+                 RETMSG                执行结果描述  
+  功能说明：
+       1。
+       2。
+  ****************************************************************/
+	PROCEDURE prc_apply_audit
+	(
+		in_apply_id           IN VARCHAR2,
+		in_audit_order        IN VARCHAR2,
+		in_audit_by           IN VARCHAR2,
+		in_audit_result       IN VARCHAR2,
+		in_audit_recommend    IN VARCHAR2,
+		in_predefine_audit_by IN VARCHAR2,
+		retcode               OUT VARCHAR2,
+		retmsg                OUT VARCHAR2
+	) IS
+	
+		li_find  INTEGER := 0;
+		li_count INTEGER := 0;
+	
+		lv_retcode         VARCHAR2(10);
+		lv_retmsg          VARCHAR2(200);
+		lv_mail_title      VARCHAR2(200);
+		lv_default_send_cc VARCHAR2(300);
+	
+		l_role_kind VARCHAR2(30);
+		l_dept      VARCHAR2(30);
+    ls_belong_yjt VARCHAR2(30);
+    myexception exception;
+	
+		li_find_business_audit_detail INTEGER := 0;
+	
+		li_find_applys_audit_detail_pr INTEGER := 0;
+		li_find_applys_audit_detail    INTEGER := 0;
+		li_find_applys_audit_detail_ne INTEGER := 0;
+		li_find_applys_audit_detail_n2 INTEGER := 0;
+	
+		l_hm_applys hm_applys%ROWTYPE;
+	
+		l_hm_applys_audit_detail    hm_applys_audit_detail%ROWTYPE;
+		l_hm_applys_audit_detail_n2 hm_applys_audit_detail%ROWTYPE;
+	
+		ls_audit_batch_id VARCHAR2(20);
+	
+		ls_apply_by VARCHAR2(20); -------Added by liy 20090818
+		--业务审批流
+		CURSOR cur_business_audit_detail(p_business_code IN VARCHAR2, p_audit_version IN VARCHAR2) IS
+			SELECT *
+				FROM hm_business_audit_detail
+			 WHERE business_code = p_business_code
+				 AND audit_version = p_audit_version
+				 AND delete_flag = '0';
+	
+		--申请审批明细
+		CURSOR cur_applys_audit_detail(p_apply_id IN VARCHAR2, p_business_code IN VARCHAR2, p_audit_version IN VARCHAR2, p_audit_order IN VARCHAR2) IS
+			SELECT *
+				FROM hm_applys_audit_detail
+			 WHERE apply_id = p_apply_id
+				 AND business_code = p_business_code
+				 AND audit_version = p_audit_version
+				 AND audit_order = p_audit_order
+				 AND delete_flag = '0';
+		--前节申请审批明细(未审批通过的信息)
+		CURSOR cur_applys_audit_detail_prev(p_apply_id IN VARCHAR2, p_business_code IN VARCHAR2, p_audit_version IN VARCHAR2, p_audit_order IN VARCHAR2) IS
+		--SELECT * FROM HM_APPLYS_AUDIT_DETAIL
+		--WHERE ( APPLY_ID, BUSINESS_CODE, AUDIT_VERSION, AUDIT_ORDER ) =     
+		--( 
+		--SELECT APPLY_ID,BUSINESS_CODE,AUDIT_VERSION,max(AUDIT_ORDER) AUDIT_ORDER
+			SELECT *
+				FROM hm_applys_audit_detail
+			 WHERE apply_id = p_apply_id
+				 AND business_code = p_business_code
+				 AND audit_version = p_audit_version
+				 AND audit_order < p_audit_order
+				 AND (audit_result IN ('0', 'N') OR audit_result IS NULL) --diff
+				 AND delete_flag = '0';
+		--   GROUP BY
+		--         APPLY_ID,BUSINESS_CODE,AUDIT_VERSION
+		--);    
+	
+		--后节申请审批明细(已审批通过的信息)
+		CURSOR cur_applys_audit_detail_next(p_apply_id IN VARCHAR2, p_business_code IN VARCHAR2, p_audit_version IN VARCHAR2, p_audit_order IN VARCHAR2) IS
+		--SELECT * FROM HM_APPLYS_AUDIT_DETAIL
+		--WHERE ( APPLY_ID, BUSINESS_CODE, AUDIT_VERSION, AUDIT_ORDER ) =     
+		--( 
+		--SELECT APPLY_ID,BUSINESS_CODE,AUDIT_VERSION,min(AUDIT_ORDER) AUDIT_ORDER
+			SELECT *
+				FROM hm_applys_audit_detail
+			 WHERE apply_id = p_apply_id
+				 AND business_code = p_business_code
+				 AND audit_version = p_audit_version
+				 AND audit_order > p_audit_order
+				 AND audit_result = 'Y' --diff
+				 AND delete_flag = '0';
+		--   GROUP BY
+		--         APPLY_ID,BUSINESS_CODE,AUDIT_VERSION
+		--);  
+	
+		--后节申请审批明细(相邻的)
+		CURSOR cur_applys_audit_detail_next2(p_apply_id IN VARCHAR2, p_business_code IN VARCHAR2, p_audit_version IN VARCHAR2, p_audit_order IN VARCHAR2) IS
+			SELECT t.*
+				FROM hm_applys_audit_detail t
+			 WHERE (apply_id, business_code, audit_version, audit_order) =
+						 (SELECT apply_id,
+										 business_code,
+										 audit_version,
+										 MIN(audit_order) audit_order
+								FROM hm_applys_audit_detail
+							 WHERE apply_id = p_apply_id
+								 AND business_code = p_business_code
+								 AND audit_version = p_audit_version
+								 AND audit_order > p_audit_order
+								 AND delete_flag = '0' --and active_flag = '1'
+							 GROUP BY apply_id,
+												business_code,
+												audit_version)
+				 AND t.delete_flag = '0' --and t.active_flag = '1'                   
+			;
+/*	
+		--根据角色和部门获取用户信息               
+		CURSOR cur_getauditersbyroleunit(p_role IN VARCHAR2, p_dept IN VARCHAR2) IS
+			SELECT ttt.psn_account,
+						 ttt.psn_name,
+						 ttt.psn_desc,
+						 t.role_name,
+						 t.org_name
+				FROM org_person ttt,
+						 org_role_psn_map tt1,
+						 org_role_psn_map tt2,
+						 (SELECT MAX(t.adminunit) role_id,
+										 MAX(t.adminunitname) role_name,
+										 MAX(t.admindept) org_id,
+										 MAX(t.admindeptname) org_name
+								FROM (SELECT decode(t.owner_unit_id, 'adminUnit', t.role_id, '') adminunit,
+														 decode(t.owner_unit_id, 'adminUnit', t.role_name, '') adminunitname,
+														 decode(t.owner_unit_id, 'adminDept', t.role_id, '') admindept,
+														 decode(t.owner_unit_id, 'adminDept', t.role_name, '') admindeptname
+												FROM (SELECT t.role_id,
+																		 t.role_name,
+																		 t.owner_unit_id
+																FROM org_role t
+															 WHERE (t.owner_unit_id = 'adminUnit' AND t.role_name = p_role)
+																	OR (t.owner_unit_id = 'adminDept' AND t.role_name = p_dept)) t) t) t
+			 WHERE ttt.psn_id = tt1.psn_id
+				 AND tt1.psn_id = tt2.psn_id
+				 AND tt2.role_id = t.org_id
+				 AND tt1.role_id = t.role_id
+			 ORDER BY ttt.psn_account;*/    
+	
+	BEGIN
+	
+		retcode := 'S';
+		--RETMSG  := 'AUDIT SUCCEED!';
+	
+		-------------------------Added by liy 20090818 暂时用ls_apply_by替换了本存储过程中的in_audit_by
+		IF in_audit_order = '00' AND in_audit_by IS NULL THEN
+			SELECT 'P:'||t.apply_by
+				INTO ls_apply_by
+				FROM hm_applys t
+			 WHERE t.apply_id = in_apply_id;
+		ELSE
+			ls_apply_by := in_audit_by;
+			--in_audit_by :=  ls_apply_by;
+		END IF;
+		-------------------------
+		--非空校验
+		IF in_apply_id IS NULL OR in_audit_order IS NULL OR ls_apply_by IS NULL OR in_audit_result IS NULL THEN
+			retcode := 'E';
+			retmsg  := '申请单ID、审批序号、申请人或审批结论 为空!';
+			RETURN;
+		END IF;
+  
+		--有效值校验
+		IF in_audit_result NOT IN ('0', 'Y', 'N', 'C') THEN
+			retcode := 'E';
+			retmsg  := '审批结论错误!!';
+			RETURN;
+		END IF;
+		IF in_audit_order < '00' OR in_audit_order > '999' THEN
+			retcode := 'E';
+			retmsg  := '审批序号不合法!';
+			RETURN;
+		END IF;
+	
+    --指定预定义审批人
+    IF in_audit_order <> '999' AND in_predefine_audit_by IS NULL AND in_audit_result <> 'N' THEN
+			retcode := 'E';
+			retmsg  := '预定义审批人不得为空!';
+			RETURN;
+    END if;
+    
+		----审核办理
+		--0, 申请信息准备
+		--0.1, 申请头信息
+		FOR cur_rows IN (SELECT *
+											 FROM hm_applys
+											WHERE apply_id = in_apply_id) LOOP
+			li_find := li_find + 1;
+		
+			l_hm_applys := cur_rows;
+		END LOOP;
+	
+		IF li_find < 1 OR l_hm_applys.apply_id IS NULL THEN
+			retcode := 'E';
+			retmsg  := '申请ID不存在!';
+			RETURN;
+		END IF;
+	
+	     --责任经营体
+    IF l_hm_applys.business_type = 'JC' THEN
+      ls_belong_yjt := l_hm_applys.dept_code;
+    ELSE
+      IF l_hm_applys.jyt_code_next IS NOT NULL THEN
+        ls_belong_yjt := l_hm_applys.jyt_code_next;
+      ELSE
+        IF l_hm_applys.jyt_code IS NOT NULL THEN
+          ls_belong_yjt := l_hm_applys.jyt_code;
+        ELSE
+          ls_belong_yjt := '';
+        END IF;
+      END IF;
+    END IF;
+          
+		--0.2, 申请审批信息准备
+		ls_audit_batch_id := comm_util.func_new_rowid(); --批次信息
+	
+		FOR cur_rows IN cur_applys_audit_detail(l_hm_applys.apply_id, l_hm_applys.business_code,
+																						l_hm_applys.current_audit_version, in_audit_order) LOOP
+			li_find_applys_audit_detail := li_find_applys_audit_detail + 1;
+		
+			l_hm_applys_audit_detail := cur_rows;
+		END LOOP;
+	
+		IF li_find_applys_audit_detail > 1 THEN
+			--如果申请审批信息找到多条
+			retcode := 'E';
+			retmsg  := '申请ID存在多条!';
+			RETURN;
+		ELSIF li_find_applys_audit_detail < 1 THEN
+			--如果申请审批信息没有找到
+		
+			IF in_audit_order = '00' THEN
+				--1，首环节审批时，可能需要初始化审批明细信息
+				IF in_audit_result = 'Y' THEN
+					--根据 业务审批信息 构建 申请审批信息
+					FOR cur_rows IN cur_business_audit_detail(l_hm_applys.business_code, l_hm_applys.current_audit_version) 
+          LOOP
+             
+						li_find_business_audit_detail := li_find_business_audit_detail + 1;
+            					
+            BEGIN
+               if (((ls_belong_yjt = '1016' and (l_hm_applys.is_samejyt <> 'JYTCROSS' or l_hm_applys.is_samejyt is null) ) or (l_hm_applys.is_samejyt = 'JYTCROSS'
+               and l_hm_applys.jyt_code = '1016' and cur_rows.audit_by_role ='CstManagerJYT')
+               or (l_hm_applys.is_samejyt = 'JYTCROSS'
+               and l_hm_applys.jyt_code_next = '1016' and cur_rows.audit_by_role ='CstManagerJYT_NEXT')) 
+               and getrolekind(cur_rows.audit_by_role) = 'ROLEKIND_JYT' )then
+            raise myexception;
+            end if;                      
+						l_hm_applys_audit_detail.row_id             := comm_util.func_new_rowid();
+						l_hm_applys_audit_detail.created_by         := ls_apply_by;
+						l_hm_applys_audit_detail.created            := SYSDATE;
+						l_hm_applys_audit_detail.last_upd_by        := ls_apply_by;
+						l_hm_applys_audit_detail.last_upd           := SYSDATE;
+						l_hm_applys_audit_detail.modification_num   := 0;
+						l_hm_applys_audit_detail.delete_flag        := '0';
+						l_hm_applys_audit_detail.active_flag        := '1';
+						l_hm_applys_audit_detail.remark             := '';
+						l_hm_applys_audit_detail.apply_id           := in_apply_id;
+						l_hm_applys_audit_detail.business_code      := cur_rows.business_code;
+						l_hm_applys_audit_detail.audit_version      := cur_rows.audit_version;
+						l_hm_applys_audit_detail.audit_order        := cur_rows.audit_order;
+						l_hm_applys_audit_detail.audit_by_role      := cur_rows.audit_by_role;
+						l_hm_applys_audit_detail.predefine_audit_by := ''; --后续更新prc_apply_audit_predefiner处理
+						l_hm_applys_audit_detail.audit_by           := '';
+						l_hm_applys_audit_detail.audit_result       := '';
+						l_hm_applys_audit_detail.audit_recommend    := '';
+						l_hm_applys_audit_detail.audit_batch_id     := ls_audit_batch_id;
+					
+					      INSERT INTO hm_applys_audit_detail VALUES l_hm_applys_audit_detail;                     
+            EXCEPTION
+                     WHEN OTHERS THEN
+                          NULL;
+             END;
+
+					
+					END LOOP;
+				
+					COMMIT; --初始化申请审批列表，可以随时保存
+				
+					IF li_find_business_audit_detail < 1 THEN
+						retcode := 'E';
+						retmsg  := '业务审批流程明细尚未配置!';
+						RETURN;
+					ELSE
+						--LI_FIND_business_audit_detail > 0
+						li_find_applys_audit_detail := 0;
+						FOR cur_rows IN cur_applys_audit_detail(l_hm_applys.apply_id, l_hm_applys.business_code,
+																										l_hm_applys.current_audit_version, in_audit_order) LOOP
+							li_find_applys_audit_detail := li_find_applys_audit_detail + 1;
+							l_hm_applys_audit_detail    := cur_rows;
+						END LOOP;
+					
+						IF li_find_applys_audit_detail <> 1 THEN
+							retcode := 'E';
+							retmsg  := '申请审批流程明细创建错误!';
+							RETURN;
+						END IF;
+					
+					END IF;
+				
+				ELSE
+					--IN_AUDIT_ORDER = '00' and IN_AUDIT_RESULT <> 'Y'
+					retcode := 'E';
+					retmsg  := '00 审批结论错误!';
+					RETURN;
+				END IF;
+			
+			ELSE
+				--IN_AUDIT_ORDER <> '00'
+				retcode := 'E';
+				retmsg  := '申请审批流程明细信息不存在!';
+				RETURN;
+			END IF;
+		
+		END IF; --LI_FIND_applys_audit_detail < 1
+    
+		----------------------------------------------------------------------------
+		----Here, LI_FIND_applys_audit_detail = 1.
+	
+		----获取申请前、后节审批信息(是否存在非法审批)
+		--存在否前节(未审批的信息)
+		li_find_applys_audit_detail_pr := 0;
+		FOR cur_rows IN cur_applys_audit_detail_prev(l_hm_applys.apply_id, l_hm_applys.business_code,
+																								 l_hm_applys.current_audit_version, in_audit_order) LOOP
+			li_find_applys_audit_detail_pr := li_find_applys_audit_detail_pr + 1;
+		END LOOP;
+	
+		IF li_find_applys_audit_detail_pr > 0 THEN
+			retcode := 'E';
+			retmsg  := '存在尚未审批的前节流程!';
+			RETURN;
+		END IF;
+	
+		--存在否后节(已审批的信息)  
+		li_find_applys_audit_detail_ne := 0;
+		FOR cur_rows IN cur_applys_audit_detail_next(l_hm_applys.apply_id, l_hm_applys.business_code,
+																								 l_hm_applys.current_audit_version, in_audit_order) LOOP
+			li_find_applys_audit_detail_ne := li_find_applys_audit_detail_ne + 1;
+		END LOOP;
+	
+		IF li_find_applys_audit_detail_ne > 0 THEN
+			retcode := 'E';
+			retmsg  := '存在已经审批的后节流程!';
+			RETURN;
+		END IF;
+	
+		--设定默认抄送邮件
+		IF l_hm_applys.master_type = 'CUSTOMER' THEN
+			lv_default_send_cc := '';--add20120611 去除hrmdc@haier.com
+		ELSIF l_hm_applys.master_type = 'VENDOR' THEN
+			lv_default_send_cc := '';--'zhanglp@haier.com';
+    ELSIF l_hm_applys.master_type = 'COMPANY' THEN
+			lv_default_send_cc := 'yuzf@haier.com'; 
+    ELSIF l_hm_applys.master_type = 'MATERIAL' THEN
+      --lv_default_send_cc := '';  
+			--lv_default_send_cc := 'yuzf@haier.com';
+      if instr(l_hm_applys.business_code,'INDIA') > 0 then
+        lv_default_send_cc := 'psi.mdmles@haier.com';
+      else
+        lv_default_send_cc := '';  
+      end if;
+      
+		/*		ELSIF l_hm_applys.master_type = 'CUSTOMERDEL' THEN
+			lv_default_send_cc := 'hanhy@haier.com';
+		ELSIF l_hm_applys.master_type = 'BANKS' THEN
+			lv_default_send_cc := 'hanhy@haier.com';*/
+		ELSE
+			lv_default_send_cc := '';--add20120611 去除hrmdc@haier.com
+		END IF;
+	  
+		----根据审批结论进行审批处理
+		CASE in_audit_result
+			WHEN 'N' THEN
+				--审批不通过IN_AUDIT_RESULT
+			
+        IF in_audit_order = '999' AND l_hm_applys.audit_flag > '1' THEN --MDC流程已审批,到封卷环节了
+          --当前条目信息保存 
+          UPDATE hm_applys_audit_detail t
+             SET t.audit_by = ls_apply_by,
+                 t.audit_result = '0', --999环节，待审批
+                 t.audit_recommend = in_audit_recommend,
+                 t.last_upd_by = ls_apply_by,
+                 t.last_upd = SYSDATE
+           WHERE t.row_id = l_hm_applys_audit_detail.row_id;
+  			
+          --更新申请头信息
+          UPDATE hm_applys tt
+             SET tt.audit_flag = '1', --diff
+                 tt.last_audit_order = in_audit_order,
+                 tt.last_audit_by = ls_apply_by,
+                 tt.last_audit_result = in_audit_result,
+                 tt.last_audit_recommend = substrb(in_audit_recommend, 1, 50),
+                 tt.last_upd_by = ls_apply_by,
+                 tt.last_upd = SYSDATE
+           WHERE tt.apply_id = l_hm_applys_audit_detail.apply_id;
+  			
+          IF l_hm_applys_audit_detail.audit_by IS NOT NULL AND
+             comm_util.get_psn_email(l_hm_applys_audit_detail.audit_by) IS NOT NULL THEN
+							
+            /*lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+                             ' ), 被驳回需要重新审核! ';*/
+						if instr(l_hm_applys.business_code,'INDIA') > 0 then
+              lv_mail_title := in_apply_id || ' ( Audit Order: ' || in_audit_order || ', Audit By: ' || ls_apply_by ||
+                             ' ), Data has been rejected! ';  
+            else
+              lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+                           ' ), 被驳回需要重新审核! ';
+            end if; 	
+            comm_util.prc_send_mail(in_mail_type => l_hm_applys.master_type, in_mail_sub_type => '1_Y_NEXT',
+                                    in_send_to => comm_util.get_psn_email(l_hm_applys_audit_detail.audit_by),
+                                    in_send_cc_to => lv_default_send_cc, in_send_bcc_to => '',
+                                    in_mail_title => lv_mail_title,
+                                    in_mail_content => func_apply_email_content(l_hm_applys.master_type, in_apply_id,in_audit_recommend),
+                                    retcode => lv_retcode, retmsg => lv_retmsg);
+          END IF;
+          
+        ELSE -- <>999 or =999 auditflag = 1          
+          --当前条目信息保存 
+          UPDATE hm_applys_audit_detail t
+             SET t.audit_by = ls_apply_by,
+                 t.audit_result = in_audit_result,
+                 t.audit_recommend = in_audit_recommend,
+                 t.last_upd_by = ls_apply_by,
+                 t.last_upd = SYSDATE
+           WHERE t.row_id = l_hm_applys_audit_detail.row_id;
+  			
+          --更新申请头信息
+          UPDATE hm_applys tt
+             SET tt.audit_flag = '0', --diff
+                 tt.last_audit_order = in_audit_order,
+                 tt.last_audit_by = ls_apply_by,
+                 tt.last_audit_result = in_audit_result,
+                 tt.last_audit_recommend = substrb(in_audit_recommend, 1, 50),
+                 tt.last_upd_by = ls_apply_by,
+                 tt.last_upd = SYSDATE
+           WHERE tt.apply_id = l_hm_applys_audit_detail.apply_id;
+  			
+          --归档上一审批明细
+          UPDATE hm_applys_audit_detail t
+             SET t.delete_flag = '1', --
+                 t.last_upd_by = ls_apply_by,
+                 t.last_upd = SYSDATE
+           WHERE t.apply_id = l_hm_applys_audit_detail.apply_id
+             AND t.delete_flag = '0';
+  			
+          IF l_hm_applys.apply_email IS NOT NULL THEN
+  				
+            /*lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+                             ' ) ';*/
+  				  if instr(l_hm_applys.business_code,'INDIA') > 0 then
+              lv_mail_title := in_apply_id || ' ( Audit Order: ' || in_audit_order || ', Audit By: ' || ls_apply_by ||
+                             ' ) ';  
+            else
+              lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+                             ' ) ';  
+            end if;
+            comm_util.prc_send_mail(in_mail_type => l_hm_applys.master_type, in_mail_sub_type => '1_N',
+                                    in_send_to => l_hm_applys.apply_email, in_send_cc_to => lv_default_send_cc,
+                                    in_send_bcc_to => '', in_mail_title => lv_mail_title,
+                                    in_mail_content => func_apply_email_content(l_hm_applys.master_type, in_apply_id,in_audit_recommend),
+                                    retcode => lv_retcode, retmsg => lv_retmsg);
+          END IF;
+			  END IF; -- =999 auditflag > 1
+        
+			WHEN 'Y' THEN
+				--审批通过IN_AUDIT_RESULT
+			
+				--非最后审批环节
+				IF in_audit_order <> '999' THEN
+				
+					/*          --如设置下环节预定义审批人，则验证此审批人的角色是否满足下环节条件
+                    --l_hm_applys_audit_detail_n2 为下环节信息 
+                    if IN_PREDEFINE_AUDIT_BY is not null then
+                      select count(*) into li_count
+                      from org_role_psn_map m, org_person p, org_role r
+                      where r.role_id = m.role_id
+                      and r.owner_unit_id = 'adminUnit'
+                      and m.psn_id = p.psn_id
+                      and r.role_name = l_hm_applys_audit_detail_n2.audit_by_role
+                      and p.psn_account = IN_PREDEFINE_AUDIT_BY;
+                      if li_count < 1 then
+                        ROLLBACK;
+                        RETCODE := 'E';
+                        RETMSG  := 'next PREDEFINE_AUDIT_BY role wrong!';
+                        return;          
+                      end if;
+                    end if;
+          */
+					--当前条目信息保存
+					UPDATE hm_applys_audit_detail t
+						 SET t.audit_by = ls_apply_by,
+								 t.audit_result = in_audit_result,
+								 t.audit_recommend = in_audit_recommend,
+								 t.last_upd_by = ls_apply_by,
+								 t.last_upd = SYSDATE
+					 WHERE t.row_id = l_hm_applys_audit_detail.row_id;
+				
+					--更新申请头信息
+					UPDATE hm_applys tt
+						 SET tt.audit_flag = '1', --diff
+								 tt.last_audit_order = in_audit_order,
+								 tt.last_audit_by = ls_apply_by,
+								 tt.last_audit_result = in_audit_result,
+								 tt.last_audit_recommend = substrb(in_audit_recommend, 1, 50),
+								 tt.last_upd_by = ls_apply_by,
+								 tt.last_upd = SYSDATE
+					 WHERE tt.apply_id = l_hm_applys_audit_detail.apply_id;
+				
+					--后节信息(相邻的)  
+					li_find_applys_audit_detail_n2 := 0;
+					FOR cur_rows IN cur_applys_audit_detail_next2(l_hm_applys.apply_id, l_hm_applys.business_code,
+																												l_hm_applys.current_audit_version, in_audit_order) LOOP
+						li_find_applys_audit_detail_n2 := li_find_applys_audit_detail_n2 + 1;
+						l_hm_applys_audit_detail_n2    := cur_rows;
+					
+						--更新申请下一审批环节为待审批状态
+						UPDATE hm_applys_audit_detail t
+							 SET t.audit_result = '0',
+									 t.predefine_audit_by = decode(in_predefine_audit_by, NULL, t.predefine_audit_by, in_predefine_audit_by),
+									 ----t.audit_recommend = '请填入审批理由：',
+									 ----t.last_upd_by = ls_apply_by,
+									 t.last_upd = SYSDATE
+						 WHERE t.row_id = l_hm_applys_audit_detail_n2.row_id; --1行
+					
+						--如设置下环节预定义审批人，则验证此审批人的角色是否满足下环节条件
+						--l_hm_applys_audit_detail_n2 为下环节信息 
+						IF in_predefine_audit_by IS NOT NULL THEN
+							SELECT COUNT(*)
+								INTO li_count
+								FROM org_role_psn_map m,
+										 org_person       p,
+										 org_role         r
+							 WHERE r.role_id = m.role_id
+								 AND r.owner_unit_id = 'adminUnit'
+								 AND m.psn_id = p.psn_id
+								 AND r.role_name = l_hm_applys_audit_detail_n2.audit_by_role
+								 AND p.psn_account = in_predefine_audit_by;
+							IF li_count < 1 THEN
+								ROLLBACK;
+								retcode := 'E';
+								retmsg  := '下节预定义审批人角色错误!';
+								RETURN;
+							END IF;
+						END IF; --IN_PREDEFINE_AUDIT_BY is not null
+					
+						--邮件发送准备  
+						IF in_predefine_audit_by IS NOT NULL AND comm_util.get_psn_email(in_predefine_audit_by) IS NOT NULL THEN
+							--有新的(有效的)预定义审批人
+						
+							/*lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+															 ' ) ';*/
+						  if instr(l_hm_applys.business_code,'INDIA') > 0 then
+                lv_mail_title := in_apply_id || ' ( Audit Order: ' || in_audit_order || ', Audit By: ' || ls_apply_by ||
+                               ' ) ';  
+              else
+                lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+                               ' ) ';  
+              end if;
+							comm_util.prc_send_mail(in_mail_type => l_hm_applys.master_type, in_mail_sub_type => '1_Y_NEXT',
+																			in_send_to => comm_util.get_psn_email(in_predefine_audit_by),
+																			in_send_cc_to => lv_default_send_cc, in_send_bcc_to => '',
+																			in_mail_title => lv_mail_title,
+																			in_mail_content => func_apply_email_content(l_hm_applys.master_type, in_apply_id,in_audit_recommend),
+																			retcode => lv_retcode, retmsg => lv_retmsg);
+						
+						ELSE
+							--无新的(有效的)预定义审批人
+							IF l_hm_applys_audit_detail_n2.predefine_audit_by IS NOT NULL AND
+								 comm_util.get_psn_email(l_hm_applys_audit_detail_n2.predefine_audit_by) IS NOT NULL THEN
+							
+								/*lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+																 ' ) ';*/
+							  if instr(l_hm_applys.business_code,'INDIA') > 0 then
+                  lv_mail_title := in_apply_id || ' ( Audit Order: ' || in_audit_order || ', Audit By: ' || ls_apply_by ||
+                                 ' ) ';  
+                else
+                  lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+                                 ' ) ';  
+                end if;
+								comm_util.prc_send_mail(in_mail_type => l_hm_applys.master_type, in_mail_sub_type => '1_Y_NEXT',
+																				in_send_to => comm_util.get_psn_email(l_hm_applys_audit_detail_n2.predefine_audit_by),
+																				in_send_cc_to => lv_default_send_cc, in_send_bcc_to => '',
+																				in_mail_title => lv_mail_title,
+																				in_mail_content => func_apply_email_content(l_hm_applys.master_type, in_apply_id,in_audit_recommend),
+																				retcode => lv_retcode, retmsg => lv_retmsg);
+							ELSE
+								--无预定义审批人
+								l_role_kind := getrolekind(l_hm_applys_audit_detail_n2.audit_by_role);
+                IF l_role_kind = 'adminRole' THEN
+                  l_dept := '0000';
+                ELSIF l_role_kind = 'ROLEKIND_JYT' AND l_hm_applys.business_type <> 'JC'  THEN          
+                  IF instr(cur_rows.audit_by_role,'NEXT') > 0 THEN
+                    l_dept := l_hm_applys.jyt_code_next;
+                  ELSE
+                    l_dept := l_hm_applys.jyt_code;
+                  END IF;
+                ELSE --l_role_kind IN ('ROLEKIND_PL','ROLEKIND_GM','ROLEKIND_JYT')
+                  l_dept := l_hm_applys.Dept_Code;                 
+                END IF;
+
+							
+								FOR cur_rows_psn IN cur_getauditersbyroleunit(l_hm_applys_audit_detail_n2.audit_by_role, l_dept) LOOP
+									IF comm_util.get_psn_email(cur_rows_psn.psn_account) IS NOT NULL THEN
+									
+										/*lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' ||
+																		 ls_apply_by || ' ) ';*/
+									  if instr(l_hm_applys.business_code,'INDIA') > 0 then
+                      lv_mail_title := in_apply_id || ' ( Audit Order: ' || in_audit_order || ', Audit By: ' || ls_apply_by ||
+                                     ' ) ';  
+                    else
+                      lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+                                     ' ) ';  
+                    end if;
+										comm_util.prc_send_mail(in_mail_type => l_hm_applys.master_type, in_mail_sub_type => '1_Y_NEXT',
+																						in_send_to => comm_util.get_psn_email(cur_rows_psn.psn_account),
+																						in_send_cc_to => lv_default_send_cc, in_send_bcc_to => '',
+																						in_mail_title => lv_mail_title,
+																						in_mail_content => func_apply_email_content(l_hm_applys.master_type,
+																																												 in_apply_id,in_audit_recommend),
+																						retcode => lv_retcode, retmsg => lv_retmsg);
+									END IF;
+								END LOOP;
+							END IF;
+						
+						END IF; --comm_util.get_psn_email(IN_PREDEFINE_AUDIT_BY) is not null
+					
+					END LOOP;
+				
+				ELSE
+					-- IN_AUDIT_ORDER = '999' 最后审批环节
+					IF l_hm_applys.master_type = 'CUSTOMER' THEN
+						--申请单信息转客户数据变更
+						customer_apply.prc_apply_customer_trans(in_apply_id, ls_apply_by, retcode, retmsg);
+            IF retcode = 'E' THEN ROLLBACK; RETURN; END IF;
+           ELSIF l_hm_applys.master_type = 'MANAGECUST' THEN
+            SUB_COMPANY_APPLY.prc_apply_subcompany_trans(in_apply_id, ls_apply_by, retcode, retmsg);
+            IF retcode = 'E' THEN ROLLBACK; RETURN; END IF;
+           ELSIF l_hm_applys.master_type = 'VENDOR' THEN
+            VENDOR_APPLY.prc_apply_vendor_trans(in_apply_id, ls_apply_by, retcode, retmsg);
+            IF retcode = 'E' THEN ROLLBACK; RETURN; END IF;
+           ELSIF l_hm_applys.master_type = 'COMPANY' THEN
+            company_APPLY.prc_apply_company_trans(in_apply_id, ls_apply_by, retcode, retmsg);
+            IF retcode = 'E' THEN ROLLBACK; RETURN; END IF;  
+					 ELSIF l_hm_applys.master_type = 'MATERIAL' THEN
+						material_apply2.prc_apply_material_trans(in_apply_id, ls_apply_by, retcode, retmsg);
+            IF retcode = 'E' THEN ROLLBACK; RETURN; END IF;
+						--RETCODE := 'S';  
+					
+						----获取客户编码
+/*						IF retcode = 'S' AND l_hm_applys.operate_type = 'CREATE' THEN
+							generate_code_hope.generate_customer_code_hope(in_apply_id, '%', retcode, retmsg);
+              IF retcode = 'E' THEN ROLLBACK; RETURN; END IF;
+						END IF;
+*/					
+/*					ELSIF l_hm_applys.master_type = 'CUSTOMERDEL' THEN
+						--申请单信息转客户冻结数据变更
+						customerdel_apply_hope.prc_apply_customerdel(in_apply_id, ls_apply_by, retcode, retmsg);
+            IF retcode = 'E' THEN ROLLBACK; RETURN; END IF;
+					
+					ELSIF l_hm_applys.master_type = 'BANKS' THEN
+						--申请单信息转银行数据变更
+						bank_apply.prc_apply_bank_transaction(in_apply_id, ls_apply_by, retcode, retmsg);
+            IF retcode = 'E' THEN ROLLBACK; RETURN; END IF;					
+*/					
+         END IF;
+				
+					--当前条目信息保存
+					UPDATE hm_applys_audit_detail t
+						 SET t.audit_by = ls_apply_by,
+								 t.audit_result = decode(retcode, 'S', 'Y', '0'),
+								 t.audit_recommend = decode(retcode, 'S', t.audit_recommend || in_audit_recommend || '|',
+																						in_audit_recommend || ' 错误:数据转换失败! ' || retmsg),
+								 t.last_upd_by = ls_apply_by,
+								 t.last_upd = SYSDATE
+					 WHERE t.row_id = l_hm_applys_audit_detail.row_id;
+				
+					----更新申请头信息，（需判断转换状态，如果转化状态错误，封卷不在此处 ）         
+					UPDATE hm_applys tt
+						 SET tt.audit_flag = decode(retcode, 'S', '2', '1'), --diff--申请审批完成，但尚未封卷
+								 tt.transaction_flag = decode(retcode, 'S', '1', tt.transaction_flag), ---以后植入PRC_APPLY2CUSTOMER_TRANSACTION
+								 tt.last_audit_order = in_audit_order,
+								 tt.last_audit_by = ls_apply_by,
+								 tt.last_audit_result = decode(retcode, 'S', 'Y', '0'),
+								 tt.last_audit_recommend = substrb(decode(retcode, 'S', in_audit_recommend,
+																													in_audit_recommend || ' 错误:数据转换失败! ' || retmsg), 1,
+																									 50),
+								 tt.last_upd_by = ls_apply_by,
+								 tt.last_upd = SYSDATE
+					 WHERE tt.apply_id = l_hm_applys_audit_detail.apply_id;
+				   IF l_hm_applys.master_type = 'MATERIAL' THEN
+             IF l_hm_applys.apply_email IS NOT NULL THEN
+      				
+              /*lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+                               ' ) ';*/
+      				if instr(l_hm_applys.business_code,'INDIA') > 0 then
+                lv_mail_title := in_apply_id || ' ( Audit Order: ' || in_audit_order || ', Audit By: ' || ls_apply_by ||
+                               ' ) ';  
+              else
+                lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+                               ' ) ';  
+              end if;  
+              comm_util.prc_send_mail(in_mail_type => l_hm_applys.master_type, in_mail_sub_type => '1_Y_999',
+                                      in_send_to => l_hm_applys.apply_email, in_send_cc_to => lv_default_send_cc,
+                                      in_send_bcc_to => '', in_mail_title => lv_mail_title,
+                                      in_mail_content => func_apply_email_content(l_hm_applys.master_type, in_apply_id,in_audit_recommend),
+                                      retcode => lv_retcode, retmsg => lv_retmsg);
+             END IF;
+           
+           end if;  			
+				END IF;
+			
+			WHEN 'C' THEN
+				--申请封卷IN_AUDIT_RESULT
+			
+				--当前条目信息保存 
+				UPDATE hm_applys_audit_detail t
+					 SET t.audit_by = ls_apply_by,
+							 t.audit_result = in_audit_result,
+							 t.audit_recommend = t.audit_recommend || in_audit_recommend || '|',
+							 t.last_upd_by = ls_apply_by,
+							 t.last_upd = SYSDATE
+				 WHERE t.row_id = l_hm_applys_audit_detail.row_id;
+			
+				--更新申请头信息
+				UPDATE hm_applys tt
+					 SET tt.audit_flag = '3', --diff
+							 tt.transaction_flag = '2', --diff
+							 tt.last_audit_order = in_audit_order,
+							 tt.last_audit_by = ls_apply_by,
+							 tt.last_audit_result = in_audit_result,
+							 tt.last_audit_recommend = substrb(in_audit_recommend, 1, 50),
+							 tt.last_upd_by = ls_apply_by,
+							 tt.last_upd = SYSDATE
+				 WHERE tt.apply_id = l_hm_applys_audit_detail.apply_id;
+			
+				IF l_hm_applys.apply_email IS NOT NULL THEN
+				
+					/*lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+													 ' ) ';*/
+				  if instr(l_hm_applys.business_code,'INDIA') > 0 then
+            lv_mail_title := in_apply_id || ' ( Audit Order: ' || in_audit_order || ', Audit By: ' || ls_apply_by ||
+                           ' ) ';  
+          else
+            lv_mail_title := in_apply_id || ' ( 审批序号: ' || in_audit_order || ', 审批人: ' || ls_apply_by ||
+                           ' ) ';  
+          end if;
+					comm_util.prc_send_mail(in_mail_type => l_hm_applys.master_type, in_mail_sub_type => '2_C',
+																	in_send_to => l_hm_applys.apply_email, in_send_cc_to => lv_default_send_cc,
+																	in_send_bcc_to => '', in_mail_title => lv_mail_title,
+																	in_mail_content => func_apply_email_content(l_hm_applys.master_type, in_apply_id,in_audit_recommend),
+																	retcode => lv_retcode, retmsg => lv_retmsg);
+				END IF;
+			
+			ELSE
+				--'0'  --待审批IN_AUDIT_RESULT
+			
+				--当前状态不变,保存信息 --需判断后节状态
+				UPDATE hm_applys_audit_detail t
+					 SET t.audit_by = ls_apply_by,
+							 t.audit_result = in_audit_result,
+							 t.audit_recommend = in_audit_recommend,
+							 t.predefine_audit_by = decode(in_predefine_audit_by, NULL, t.predefine_audit_by, in_predefine_audit_by),
+							 t.last_upd_by = ls_apply_by,
+							 t.last_upd = SYSDATE
+				 WHERE t.row_id = l_hm_applys_audit_detail.row_id;
+			
+				UPDATE hm_applys tt
+					 SET --tt.audit_flag = tt.audit_flag, --diff
+							 tt.last_audit_order = in_audit_order,
+							 tt.last_audit_by = ls_apply_by,
+							 tt.last_audit_result = in_audit_result,
+							 tt.last_audit_recommend = substrb(in_audit_recommend, 1, 50),
+							 tt.last_upd_by = ls_apply_by,
+							 tt.last_upd = SYSDATE
+				 WHERE tt.apply_id = l_hm_applys_audit_detail.apply_id;
+			
+		END CASE;
+	
+		IF retcode <> 'E' THEN
+			retcode := 'S';
+			IF in_audit_order = '00' THEN
+				retmsg := ' 提交成功!';
+			ELSE
+				retmsg := ' 操作成功!';
+			END IF;
+  
+  		COMMIT;
+    
+    ELSE
+      ROLLBACK;
+      
+		END IF;
+	
+	
+	EXCEPTION
+		WHEN OTHERS THEN
+			ROLLBACK;
+			retcode := 'E';
+			retmsg  := '审批 失败!' || SQLERRM;
+	END prc_apply_audit;
+
+	/****************************************************************
+  功能描述：申请单明细item_no分配
+  作者：    ZhangBiao
+  时间：    2009-04-09       
+         
+  输入参数说明： IN_APPLY_ID           申请单ID
+  输出参数说明： RETCODE               执行结果编码 E,S
+                 RETMSG                执行结果描述  
+  功能说明：
+       1。
+       2。
+  ****************************************************************/
+	PROCEDURE prc_apply_get_itemno
+	(
+		in_apply_id IN VARCHAR2,
+		retcode     OUT VARCHAR2,
+		retmsg      OUT VARCHAR2
+	) IS
+		li_count       INTEGER := 0;
+		lv_max_item_no VARCHAR2(4);
+		lv_row_id      VARCHAR2(20);
+	
+		lv_table_name          VARCHAR2(30);
+		sql_nullitem_count     VARCHAR2(255);
+		sql_nullitem_min_rowid VARCHAR2(255);
+		sql_item_max_itemno    VARCHAR2(255);
+		sql_item_update_itemno VARCHAR2(255);
+	
+		l_hm_applys hm_applys%ROWTYPE;
+	BEGIN
+	
+		retcode := 'S';
+		retmsg  := 'PRC_APPLY_GET_ITEMNO SUCCEED!';
+	
+		--非空校验
+		IF in_apply_id IS NULL THEN
+			retcode := 'E';
+			retmsg  := 'conditions Insufficient!';
+			RETURN;
+		END IF;
+	
+		FOR cur_rows IN (SELECT *
+											 FROM hm_applys
+											WHERE apply_id = in_apply_id) LOOP
+			l_hm_applys := cur_rows;
+		END LOOP;
+	
+		IF l_hm_applys.master_type NOT IN ('CUSTOMER', 'CUSTOMERDEL', 'MATERIAL','BANKS','MANAGECUST','VENDOR','COMPANY') THEN
+			retcode := 'E';
+			retmsg  := 'master_type conditions Insufficient!';
+			RETURN;
+		END IF;
+	
+		--运行锁，commit解除
+		comm_util.prc_run_lock(10);
+	
+		--有效值校验
+		li_count       := 0;
+		lv_max_item_no := '0000';
+	
+		/*    select count(*),nvl(max(t.item_no),'0000')
+        into li_count, lv_max_item_no
+        from hm_apply_customer t
+        where t.delete_flag = '0'
+          and t.apply_id = IN_APPLY_ID;  --'CUSAPP200904070298'
+        
+        --存在申请明细信息
+        if li_count > 0 then
+          for cur_rows in (select row_id
+                             from hm_apply_customer 
+                            where apply_id = IN_APPLY_ID
+                              and delete_flag = '0'
+                              and item_no is null
+                            order by row_id
+                          )
+          loop
+            li_row := li_row + 1;
+            
+            --item_no赋值
+            update hm_apply_customer set item_no = lpad(lv_max_item_no + li_row*10,4,'0') --decode(item_no,null,lpad(lv_max_item_no + li_row*10,4,'0'),item_no)
+            where row_id = cur_rows.row_id ;--and item_no is null;
+              
+          end loop;
+    
+          commit;        
+          
+        end if;
+    */
+	
+		/*    select count(*)
+        into li_count
+        from hm_apply_customer t
+        where t.delete_flag = '0'
+          and t.apply_id = IN_APPLY_ID
+          and t.item_no is null ; 
+            
+        for i in 1..li_count  
+        loop
+          
+          select min(t.row_id)
+             into lv_row_id
+             from hm_apply_customer t
+            where t.apply_id = IN_APPLY_ID
+              and t.delete_flag = '0'
+              and t.item_no is null;  
+                
+          select nvl(max(t.item_no),'0000')
+             into lv_max_item_no
+             from hm_apply_customer t
+            where t.apply_id = IN_APPLY_ID
+              and t.delete_flag = '0'
+              and t.item_no is not null; 
+                    
+                
+              --item_no赋值
+              update hm_apply_customer t
+              set t.item_no = decode(t.item_no,null,lpad(lv_max_item_no + 10,4,'0'),t.item_no)
+              where t.row_id = lv_row_id ;
+                
+        end loop;
+    */
+	
+		IF l_hm_applys.master_type = 'CUSTOMER' THEN
+			lv_table_name := 'HM_APPLY_CUSTOMER';
+		ELSIF l_hm_applys.master_type = 'CUSTOMERDEL' THEN
+			lv_table_name := 'HM_APPLY_CUSTOMERDEL';
+		ELSIF l_hm_applys.master_type = 'MATERIAL' THEN
+			lv_table_name := 'HM_APPLY_MATERIAL';
+    ELSIF l_hm_applys.master_type = 'COMPANY' THEN
+			lv_table_name := 'HM_APPLY_COMPANY';   
+		ELSIF l_hm_applys.master_type = 'BANKS' THEN
+			lv_table_name := 'HM_APPLY_BANK';  
+    ELSIF l_hm_applys.master_type = 'MANAGECUST' THEN
+       lv_table_name := 'HM_APPLY_SUBCOMPANY';
+    ELSIF l_hm_applys.master_type = 'VENDOR' THEN
+       lv_table_name := 'HM_APPLY_VENDOR';
+		END IF;
+	
+		sql_nullitem_count := ' select count(*) from ' || lv_table_name || ' t ' ||
+													' where t.delete_flag = ''0'' and t.item_no is null ' || ' and t.apply_id = :IN_APPLY_ID ';
+		EXECUTE IMMEDIATE sql_nullitem_count
+			INTO li_count
+			USING in_apply_id;
+	
+		FOR i IN 1 .. li_count LOOP
+		
+			sql_nullitem_min_rowid := ' select min(t.row_id) from ' || lv_table_name || ' t ' ||
+																' where t.delete_flag = ''0'' and t.item_no is null ' ||
+																' and t.apply_id = :IN_APPLY_ID ';
+			EXECUTE IMMEDIATE sql_nullitem_min_rowid
+				INTO lv_row_id
+				USING in_apply_id;
+		
+			sql_item_max_itemno := ' select nvl(max(t.item_no),''0000'') from ' || lv_table_name || ' t ' ||
+														 ' where t.delete_flag = ''0'' and t.item_no is not null ' ||
+														 ' and t.apply_id = :IN_APPLY_ID ';
+			EXECUTE IMMEDIATE sql_item_max_itemno
+				INTO lv_max_item_no
+				USING in_apply_id;
+		
+			sql_item_update_itemno := ' update ' || lv_table_name || ' t ' ||
+																' set t.item_no = decode(t.item_no,null,lpad(''' || lv_max_item_no ||
+																''' + 10,4,''0''),t.item_no) ' || ' where t.row_id = ''' || lv_row_id || ''' ';
+			EXECUTE IMMEDIATE sql_item_update_itemno;
+		
+		END LOOP;
+	
+		--COMMIT;
+		retcode := 'S';
+		retmsg  := 'PRC_APPLY_GET_ITEMNO SUCCEED!';
+	
+	EXCEPTION
+		WHEN OTHERS THEN
+			ROLLBACK;
+			retcode := 'E';
+			retmsg  := 'PRC_APPLY_GET_ITEMNO FAILURE!' || SQLERRM;
+	END prc_apply_get_itemno;
+
+	/****************************************************************
+  功能描述：获取申请单下环节审批人员列表
+  作者：    ZhangBiao
+  时间：    2009-04-01       
+         
+  输入参数说明： IN_APPLY_ID           申请单ID
+                 IN_AUDIT_ORDER        当前审批流序号[00,...,999]
+  输出参数说明： OUT_NEXTAUDITERS      下环节审批人字串,形如：123|张三`456|李四`789|王五`
+                 OUT_AUDITERSCOUNT     下环节审批人可用数量
+                 RETCODE               执行结果编码 E,S
+                 RETMSG                执行结果描述  
+  功能说明：
+       1。
+       2。
+  ****************************************************************/
+	PROCEDURE prc_apply_get_nextauditers
+	(
+		in_apply_id       IN VARCHAR2,
+		in_audit_order    IN VARCHAR2,
+		out_nextauditers  OUT VARCHAR2,
+		out_auditerscount OUT INTEGER,
+		retcode           OUT VARCHAR2,
+		retmsg            OUT VARCHAR2
+	) IS
+	
+		li_find     INTEGER := 0;
+		l_role_kind VARCHAR2(30);
+		l_dept      VARCHAR2(30);
+	
+		l_hm_applys hm_applys%ROWTYPE;
+	
+		--业务审批流(下环节,相邻的)
+		CURSOR cur_business_audit_detail_next(p_business_code IN VARCHAR2, p_audit_version IN VARCHAR2, p_audit_order IN VARCHAR2) IS
+			SELECT t.*
+				FROM hm_business_audit_detail t
+			 WHERE (business_code, audit_version, audit_order) =
+						 (SELECT business_code,
+										 audit_version,
+										 MIN(audit_order) audit_order
+								FROM hm_business_audit_detail
+							 WHERE business_code = p_business_code
+								 AND audit_version = p_audit_version
+								 AND audit_order > p_audit_order
+								 AND delete_flag = '0'
+								 AND active_flag = '1'
+							 GROUP BY business_code,
+												audit_version)
+				 AND t.delete_flag = '0'
+				 AND t.active_flag = '1';
+	
+		--申请审批明细
+		CURSOR cur_applys_audit_detail(p_apply_id IN VARCHAR2, p_business_code IN VARCHAR2, p_audit_version IN VARCHAR2, p_audit_order IN VARCHAR2) IS
+			SELECT *
+				FROM hm_applys_audit_detail
+			 WHERE apply_id = p_apply_id
+				 AND business_code = p_business_code
+				 AND audit_version = p_audit_version
+				 AND audit_order = p_audit_order
+				 AND delete_flag = '0';
+	
+		--后节申请审批明细(相邻的)
+		CURSOR cur_applys_audit_detail_next(p_apply_id IN VARCHAR2, p_business_code IN VARCHAR2, p_audit_version IN VARCHAR2, p_audit_order IN VARCHAR2) IS
+			SELECT t.*
+				FROM hm_applys_audit_detail t
+			 WHERE (apply_id, business_code, audit_version, audit_order) =
+						 (SELECT apply_id,
+										 business_code,
+										 audit_version,
+										 MIN(audit_order) audit_order
+								FROM hm_applys_audit_detail
+							 WHERE apply_id = p_apply_id
+								 AND business_code = p_business_code
+								 AND audit_version = p_audit_version
+								 AND audit_order > p_audit_order
+								 AND delete_flag = '0'
+								 AND t.active_flag = '1'
+							 GROUP BY apply_id,
+												business_code,
+												audit_version)
+				 AND t.delete_flag = '0'
+				 AND t.active_flag = '1'
+			
+			;
+	
+/*		CURSOR cur_getauditersbyroleunit(p_role IN VARCHAR2, p_dept IN VARCHAR2) IS
+			SELECT ttt.psn_account,
+						 ttt.psn_name,
+						 ttt.psn_desc,
+						 t.role_name,
+						 t.org_name
+				FROM org_person ttt,
+						 org_role_psn_map tt1,
+						 org_role_psn_map tt2,
+						 (SELECT MAX(t.adminunit) role_id,
+										 MAX(t.adminunitname) role_name,
+										 MAX(t.admindept) org_id,
+										 MAX(t.admindeptname) org_name
+								FROM (SELECT decode(t.owner_unit_id, 'adminUnit', t.role_id, '') adminunit,
+														 decode(t.owner_unit_id, 'adminUnit', t.role_name, '') adminunitname,
+														 decode(t.owner_unit_id, 'adminDept', t.role_id, '') admindept,
+														 decode(t.owner_unit_id, 'adminDept', t.role_name, '') admindeptname
+												FROM (SELECT t.role_id,
+																		 t.role_name,
+																		 t.owner_unit_id
+																FROM org_role t
+															 WHERE (t.owner_unit_id = 'adminUnit' AND t.role_name = p_role)
+																	OR (t.owner_unit_id = 'adminDept' AND t.role_name = p_dept)) t) t) t
+			 WHERE ttt.psn_id = tt1.psn_id
+				 AND tt1.psn_id = tt2.psn_id
+				 AND tt2.role_id = t.org_id
+				 AND tt1.role_id = t.role_id
+			 ORDER BY ttt.psn_account;
+*/	
+	BEGIN
+	
+		out_auditerscount := 0;
+		out_nextauditers  := '';
+	
+		retcode := 'S';
+		--RETMSG  := 'AUDIT SUCCEED!';
+	
+		--非空校验
+		IF in_apply_id IS NULL OR in_audit_order IS NULL THEN
+			retcode := 'E';
+			retmsg  := 'conditions Insufficient!';
+			RETURN;
+		END IF;
+	
+		--有效值校验
+		IF in_audit_order < '00' OR in_audit_order > '999' THEN
+			retcode := 'E';
+			retmsg  := 'AUDIT_ORDER conditions Wrong!';
+			RETURN;
+		END IF;
+	
+		----审核办理
+		--0, 申请信息准备
+		--0.1, 申请头信息
+		FOR cur_rows IN (SELECT *
+											 FROM hm_applys
+											WHERE apply_id = in_apply_id) LOOP
+			li_find := li_find + 1;
+		
+			l_hm_applys := cur_rows;
+		END LOOP;
+	
+		IF li_find < 1 OR l_hm_applys.apply_id IS NULL THEN
+			retcode := 'E';
+			retmsg  := 'APPLY_ID not exists!';
+			RETURN;
+		END IF;
+	
+		--0.2, 申请审批信息存在的
+		FOR cur_rows_main IN cur_applys_audit_detail(l_hm_applys.apply_id, l_hm_applys.business_code,
+																								 l_hm_applys.current_audit_version, in_audit_order) LOOP
+		
+			out_auditerscount := 0;
+			out_nextauditers  := '';
+			--后节信息(相邻的)  
+			FOR cur_rows IN cur_applys_audit_detail_next(l_hm_applys.apply_id, l_hm_applys.business_code,
+																									 l_hm_applys.current_audit_version, in_audit_order) LOOP
+				--获取下节审批人部门
+				l_role_kind := getrolekind(cur_rows.audit_by_role);
+        IF l_role_kind = 'adminRole' THEN
+          l_dept := '0000';
+        ELSIF l_role_kind = 'ROLEKIND_JYT' AND l_hm_applys.business_type <> 'JC'  THEN          
+          IF instr(cur_rows.audit_by_role,'NEXT') > 0 THEN
+            l_dept := l_hm_applys.jyt_code_next;
+          ELSE
+            l_dept := l_hm_applys.jyt_code;
+          END IF;
+        --当事业部客户申请时，根据上一级虚拟组织查找下级审批人 Lvdecheng 2012-05-31  
+        ELSIF l_role_kind = 'ROLEKIND_PL' AND l_hm_applys.Business_Type = 'PL' AND l_hm_applys.Master_Type = 'CUSTOMER' THEN  
+          l_dept := l_hm_applys.reality_org;--getOrgCode(getOrgCode(l_hm_applys.reality_org));
+        ELSE --l_role_kind IN ('ROLEKIND_PL','ROLEKIND_GM','ROLEKIND_JYT')
+          l_dept := l_hm_applys.Dept_Code;                 
+        END IF;
+			  --公司的不需要虚拟组织                              
+        IF l_hm_applys.business_code  in ('CMP-CREATE','CMP-UPDATE') then
+          for cur_row in (select a.psn_account,a.psn_name
+                            from org_person a, org_role b, org_role_psn_map c
+                           where a.active_flag = '1'
+                             and a.psn_id = c.psn_id
+                             and b.role_id = c.role_id
+                             and b.role_name = cur_rows.audit_by_role)
+          loop
+            out_auditerscount := out_auditerscount + 1;
+					  out_nextauditers  := out_nextauditers || cur_row.psn_account || '|' || cur_row.psn_name || '`';
+          end loop; 
+        else
+          --getAuditersByRoleUnit
+          FOR cur_rows2 IN cur_getauditersbyroleunit(cur_rows.audit_by_role, l_dept) LOOP
+            out_auditerscount := out_auditerscount + 1;
+            out_nextauditers  := out_nextauditers || cur_rows2.psn_account || '|' || cur_rows2.psn_name || '`';
+          END LOOP;
+        end if;   
+				
+			
+			END LOOP;
+		
+			retcode := 'S';
+			retmsg  := 'PRC_APPLY_GET_NEXTAUDITERS success!';
+			RETURN;
+		
+		END LOOP;
+	
+		--如果申请审批信息没有找到
+		IF in_audit_order = '00' THEN
+			--1，首环节审批时，可能需要读取业务审批明细信息
+		
+			out_auditerscount := 0;
+			out_nextauditers  := '';
+			--后节信息(相邻的)  
+			FOR cur_rows IN cur_business_audit_detail_next(l_hm_applys.business_code, l_hm_applys.current_audit_version,
+																										 in_audit_order) LOOP
+				--获取下节审批人部门
+				l_role_kind := getrolekind(cur_rows.audit_by_role);
+        IF l_role_kind = 'adminRole' THEN
+          l_dept := '0000';
+        --当事业部客户申请时，根据上一级虚拟组织查找下级审批财务 Lvdecheng 2012-05-31 
+        ELSIF l_role_kind = 'ROLEKIND_PL' AND l_hm_applys.Business_Type = 'PL' AND l_hm_applys.Master_Type = 'CUSTOMER' THEN  
+          l_dept := l_hm_applys.reality_org;--getOrgCode(l_hm_applys.reality_org);
+        ELSE --l_role_kind IN ('ROLEKIND_PL','ROLEKIND_GM','ROLEKIND_JYT')
+          l_dept := l_hm_applys.Dept_Code;                 
+        END IF;
+			  IF l_hm_applys.business_code  in ('CMP-CREATE','CMP-UPDATE') then
+          for cur_row in (select a.psn_account,a.psn_name
+                            from org_person a, org_role b, org_role_psn_map c
+                           where a.active_flag = '1'
+                             and a.psn_id = c.psn_id
+                             and b.role_id = c.role_id
+                             and b.role_name = cur_rows.audit_by_role)
+          loop
+            out_auditerscount := out_auditerscount + 1;
+					  out_nextauditers  := out_nextauditers || cur_row.psn_account || '|' || cur_row.psn_name || '`';
+          end loop;                              
+        
+        ELSE 
+				--getAuditersByRoleUnit
+          FOR cur_rows2 IN cur_getauditersbyroleunit(cur_rows.audit_by_role, l_dept) LOOP
+            out_auditerscount := out_auditerscount + 1;
+            out_nextauditers  := out_nextauditers || cur_rows2.psn_account || '|' || cur_rows2.psn_name || '`';
+          END LOOP;
+			  end if;
+			END LOOP;
+		
+			retcode := 'S';
+			retmsg  := 'PRC_APPLY_GET_NEXTAUDITERS success!';
+			RETURN;
+		
+		ELSE
+			--IN_AUDIT_ORDER <> '00'
+			retcode := 'E';
+			retmsg  := 'applys_audit_detail not exists!';
+			RETURN;
+		END IF;
+	
+	EXCEPTION
+		WHEN OTHERS THEN
+			ROLLBACK;
+			retcode := 'E';
+			retmsg  := 'PRC_APPLY_GET_NEXTAUDITERS FAILURE!' || SQLERRM;
+	END prc_apply_get_nextauditers;
+
+	/****************************************************************
+  功能描述：数据传输触发申请单封卷
+  作者：    ZhangBiao
+  时间：    2009-05-18       
+         
+  输入参数说明： IN_MASTER_ROWID        主数据id
+                 IN_TABLE_NAME         相关数据库表名称,HM_CUSTOMERS
+                 IN_USER_NAME          用户名称
+  输出参数说明： RETCODE               执行结果编码 E,S
+                 RETMSG                执行结果描述  
+  功能说明：
+       1。
+       2。
+  ****************************************************************/
+	PROCEDURE prc_apply_auto_close
+	(
+		in_master_rowid IN VARCHAR2,
+		in_table_name   IN VARCHAR2,
+		in_user_name    IN VARCHAR2,
+		retcode         OUT VARCHAR2,
+		retmsg          OUT VARCHAR2
+	) IS
+	
+		--CUSTOMER
+		CURSOR cur_cst_applys(p_master_rowid IN VARCHAR2) IS
+			SELECT t.apply_id
+				FROM hm_customers           ttt,
+						 hm_applys_transactions tt,
+						 hm_applys              t
+			 WHERE t.audit_flag = '2' --to being close.
+				 AND t.master_type = 'CUSTOMER'
+				 AND t.apply_id = tt.apply_id
+				 AND tt.delete_flag = '0'
+				 AND tt.master_row_code = ttt.customer_number
+				 AND ttt.active_flag = '1' ----and tt.delete_flag = '0'
+				 AND ttt.for_gvs = '1'
+				 AND ttt.last_version_flag = '1'
+				 AND ttt.operate_status = 'NVL'
+				 AND ttt.row_id = p_master_rowid;
+	
+		CURSOR cur_cst_applys_notclose(p_apply_id IN VARCHAR2) IS
+			SELECT ttt.customer_number
+				FROM hm_customers           ttt,
+						 hm_applys_transactions tt,
+						 hm_applys              t
+			 WHERE (ttt.last_version_flag <> '1' OR ttt.operate_status <> 'NVL')
+				 AND instr(ttt.customer_number, 'TEMP') <= 0
+				 AND ttt.customer_number = tt.master_row_code
+				 AND tt.delete_flag = '0'
+         AND ttt.delete_flag = '0'
+				 AND tt.apply_id = t.apply_id
+				 AND t.apply_id = p_apply_id;
+	
+		l_cst_applys_notclose_find INTEGER := 0;
+	
+		--CUSTOMERDEL
+		CURSOR cur_cstdel_applys(p_master_rowid IN VARCHAR2) IS
+			SELECT t.apply_id
+				FROM hm_del_customer        ttt,
+						 hm_applys_transactions tt,
+						 hm_applys              t
+			 WHERE t.audit_flag = '2' --to being close.
+				 AND t.master_type = 'CUSTOMERDEL'
+				 AND t.apply_id = tt.apply_id
+				 AND tt.delete_flag = '0'
+				 AND tt.master_row_code2 = ttt.company_code
+				 AND tt.master_row_code = ttt.customer_number
+				 AND ttt.active_flag = '1' ----and tt.delete_flag = '0'
+				 AND ttt.for_gvs = '1'
+				 AND ttt.last_version_flag = '1'
+				 AND ttt.operate_status = 'NVL'
+				 AND ttt.row_id = p_master_rowid;
+	
+		CURSOR cur_cstdel_applys_notclose(p_apply_id IN VARCHAR2) IS
+			SELECT ttt.customer_number,
+						 ttt.company_code
+				FROM hm_del_customer        ttt,
+						 hm_applys_transactions tt,
+						 hm_applys              t
+			 WHERE (ttt.last_version_flag <> '1' OR ttt.operate_status <> 'NVL')
+				 AND instr(ttt.customer_number, 'TEMP') <= 0
+				 AND ttt.company_code = tt.master_row_code2
+				 AND ttt.customer_number = tt.master_row_code
+				 AND tt.delete_flag = '0'
+				 AND tt.apply_id = t.apply_id
+				 AND t.apply_id = p_apply_id;
+	
+		l_cstdel_applys_notclose_find INTEGER := 0;
+	
+		--MATERIAL
+		CURSOR cur_mtl_applys(p_master_rowid IN VARCHAR2) IS
+			SELECT t.apply_id
+				FROM hm_mtl_general         ttt,
+						 hm_applys_transactions tt,
+						 hm_applys              t
+			 WHERE t.audit_flag = '2' --to being close.
+				 AND t.master_type = 'MATERIAL'
+				 AND t.apply_id = tt.apply_id
+				 AND tt.delete_flag = '0'
+				 AND tt.master_row_code = ttt.material_code
+				 AND ttt.active_flag = '1' ----and tt.delete_flag = '0'
+				 AND ttt.for_gvs = '1'
+				 AND ttt.last_version_flag = '1'
+				 AND ttt.operate_status = 'NVL'
+				 AND ttt.row_id = p_master_rowid;
+	
+		CURSOR cur_mtl_applys_notclose(p_apply_id IN VARCHAR2) IS
+			SELECT ttt.material_code
+				FROM hm_mtl_general         ttt,
+						 hm_applys_transactions tt,
+						 hm_applys              t
+			 WHERE (ttt.last_version_flag <> '1' OR ttt.operate_status <> 'NVL')
+				 AND instr(ttt.material_code, 'TEMP') <= 0
+				 AND ttt.material_code = tt.master_row_code
+				 AND tt.delete_flag = '0'
+				 AND tt.apply_id = t.apply_id
+				 AND t.apply_id = p_apply_id;
+		l_mtl_applys_notclose_find INTEGER := 0;	
+		--BANK
+		CURSOR cur_bnk_applys(p_master_rowid IN VARCHAR2) IS
+			SELECT t.apply_id
+				FROM hm_banks        ttt,
+						 hm_applys_transactions tt,
+						 hm_applys              t
+			 WHERE t.audit_flag = '2' --to being close.
+				 AND t.master_type = 'BANKS'
+				 AND t.apply_id = tt.apply_id
+				 AND tt.delete_flag = '0'
+				 AND tt.master_row_code = ttt.bank_branch_code
+				 AND ttt.active_flag = '1' ----and tt.delete_flag = '0'
+				 AND ttt.for_gvs = '1'
+				 AND ttt.last_version_flag = '1'
+				 AND ttt.operate_status = 'NVL'
+				 AND ttt.row_id = p_master_rowid;
+	
+		CURSOR cur_bnk_applys_notclose(p_apply_id IN VARCHAR2) IS
+			SELECT ttt.bank_branch_code
+				FROM hm_banks         ttt,
+						 hm_applys_transactions tt,
+						 hm_applys              t
+			 WHERE (ttt.last_version_flag <> '1' OR ttt.operate_status <> 'NVL')
+				 AND instr(ttt.bank_branch_code, 'TEMP') <= 0
+				 AND ttt.bank_branch_code = tt.master_row_code
+				 AND tt.delete_flag = '0'
+				 AND tt.apply_id = t.apply_id
+				 AND t.apply_id = p_apply_id;  
+		l_bnk_applys_notclose_find INTEGER := 0;
+	
+		--VENDOR
+		CURSOR cur_vdr_applys(p_master_rowid IN VARCHAR2) IS
+			SELECT t.apply_id
+				FROM hm_vendors           ttt,
+						 hm_applys_transactions tt,
+						 hm_applys              t
+			 WHERE t.audit_flag = '2' --to being close.
+				 AND t.master_type = 'VENDOR'
+				 AND t.apply_id = tt.apply_id
+				 AND tt.delete_flag = '0'
+				 AND tt.master_row_code = ttt.vendor_code
+				 AND ttt.active_flag = '1' ----and tt.delete_flag = '0'
+				 --AND ttt.for_gvs = '1' --xuky 20111125注释
+				 AND ttt.last_version_flag = '1'
+				 AND ttt.operate_status = 'NVL'
+				 AND ttt.row_id = p_master_rowid;
+	
+		CURSOR cur_vdr_applys_notclose(p_apply_id IN VARCHAR2) IS
+			SELECT ttt.vendor_code
+				FROM hm_vendors           ttt,
+						 hm_applys_transactions tt,
+						 hm_applys              t
+			 WHERE (ttt.last_version_flag <> '1' OR ttt.operate_status <> 'NVL')
+				 AND instr(ttt.vendor_code, 'TEMP') <= 0
+				 AND ttt.vendor_code = tt.master_row_code
+				 AND tt.delete_flag = '0'
+         AND ttt.delete_flag = '0'
+				 AND tt.apply_id = t.apply_id
+				 AND t.apply_id = p_apply_id;
+	
+		l_vdr_applys_notclose_find INTEGER := 0;
+	
+
+	BEGIN
+	
+		retcode := 'S';
+		--RETMSG  := 'AUDIT SUCCEED!';
+	
+		--非空校验
+		IF in_master_rowid IS NULL OR in_table_name IS NULL THEN
+			retcode := 'E';
+			retmsg  := 'conditions Insufficient!';
+			RETURN;
+		END IF;
+	
+		--有效值校验
+		IF in_table_name NOT IN ('HM_CUSTOMERS', 'HM_DEL_CUSTOMER', 'HM_MTL_GENERAL','HM_BANKS','HM_VENDORS') THEN
+			retcode := 'E';
+			retmsg  := 'TABLE_NAME conditions Wrong!';
+			RETURN;
+		END IF;
+	
+		/*    --有效值校验
+    if INSTR(IN_CUSTOMER_NUMBER,'TEMP') > 0 then
+      RETCODE := 'E';
+      RETMSG  := 'CUSTOMER_NUMBER conditions Wrong!';
+      return;
+    end if;*/
+	
+		IF in_table_name = 'HM_CUSTOMERS' THEN
+			FOR cur_rows IN cur_cst_applys(in_master_rowid) LOOP
+				l_cst_applys_notclose_find := 0;
+				FOR cur_rows2 IN cur_cst_applys_notclose(cur_rows.apply_id) LOOP
+					l_cst_applys_notclose_find := l_cst_applys_notclose_find + 1;
+				END LOOP; --CUR_CST_APPLYS_NOTCLOSE(CUR_ROWS.APPLY_ID)
+			
+				IF l_cst_applys_notclose_find < 1 THEN
+					prc_apply_audit(in_apply_id => cur_rows.apply_id, in_audit_order => '999', in_audit_by => in_user_name,
+													in_audit_result => 'C', in_audit_recommend => 'SYSTEM CLOSE!', in_predefine_audit_by => '',
+													retcode => retcode, retmsg => retmsg);
+				
+				END IF;
+			END LOOP; --CUR_CST_APPLYS(IN_MASTER_ROW_CODE)
+		
+		ELSIF in_table_name = 'HM_VENDORS' THEN
+			FOR cur_rows IN cur_vdr_applys(in_master_rowid) LOOP
+				l_vdr_applys_notclose_find := 0;
+				FOR cur_rows2 IN cur_vdr_applys_notclose(cur_rows.apply_id) LOOP
+					l_vdr_applys_notclose_find := l_vdr_applys_notclose_find + 1;
+				END LOOP; --CUR_VDR_APPLYS_NOTCLOSE(CUR_ROWS.APPLY_ID)
+			
+				IF l_vdr_applys_notclose_find < 1 THEN
+					prc_apply_audit(in_apply_id => cur_rows.apply_id, in_audit_order => '999', in_audit_by => in_user_name,
+													in_audit_result => 'C', in_audit_recommend => 'SYSTEM CLOSE!', in_predefine_audit_by => '',
+													retcode => retcode, retmsg => retmsg);
+				
+				END IF;
+			END LOOP; --CUR_VDR_APPLYS(IN_MASTER_ROW_CODE)
+		
+		ELSIF in_table_name = 'HM_DEL_CUSTOMER' THEN
+			FOR cur_rows IN cur_cstdel_applys(in_master_rowid) LOOP
+				l_cstdel_applys_notclose_find := 0;
+				FOR cur_rows2 IN cur_cstdel_applys_notclose(cur_rows.apply_id) LOOP
+					l_cstdel_applys_notclose_find := l_cstdel_applys_notclose_find + 1;
+				END LOOP; --CUR_CSTDEL_APPLYS_NOTCLOSE(CUR_ROWS.APPLY_ID)
+			
+				IF l_cstdel_applys_notclose_find < 1 THEN
+					prc_apply_audit(in_apply_id => cur_rows.apply_id, in_audit_order => '999', in_audit_by => in_user_name,
+													in_audit_result => 'C', in_audit_recommend => 'SYSTEM CLOSE!', in_predefine_audit_by => '',
+													retcode => retcode, retmsg => retmsg);
+				END IF;
+			END LOOP;
+		
+		ELSIF in_table_name = 'HM_MTL_GENERAL' THEN
+			FOR cur_rows IN cur_mtl_applys(in_master_rowid) LOOP
+				l_mtl_applys_notclose_find := 0;
+				FOR cur_rows2 IN cur_mtl_applys_notclose(cur_rows.apply_id) LOOP
+					l_mtl_applys_notclose_find := l_mtl_applys_notclose_find + 1;
+				END LOOP; --CUR_MTL_APPLYS_NOTCLOSE(CUR_ROWS.APPLY_ID)
+			
+				IF l_mtl_applys_notclose_find < 1 THEN
+					prc_apply_audit(in_apply_id => cur_rows.apply_id, in_audit_order => '999', in_audit_by => in_user_name,
+													in_audit_result => 'C', in_audit_recommend => 'SYSTEM CLOSE!', in_predefine_audit_by => '',
+													retcode => retcode, retmsg => retmsg);
+				END IF;
+        	END LOOP;
+		ELSIF in_table_name = 'HM_BANKS' THEN
+			FOR cur_rows IN cur_bnk_applys(in_master_rowid) LOOP
+				l_bnk_applys_notclose_find := 0;
+				FOR cur_rows2 IN cur_bnk_applys_notclose(cur_rows.apply_id) LOOP
+					l_bnk_applys_notclose_find := l_bnk_applys_notclose_find + 1;
+				END LOOP; 
+			
+				IF l_bnk_applys_notclose_find < 1 THEN
+					prc_apply_audit(in_apply_id => cur_rows.apply_id, in_audit_order => '999', in_audit_by => in_user_name,
+													in_audit_result => 'C', in_audit_recommend => 'SYSTEM CLOSE!', in_predefine_audit_by => '',
+													retcode => retcode, retmsg => retmsg);
+                          				
+				END IF;
+			END LOOP; --CUR_MTL_APPLYS(IN_MASTER_ROW_CODE)
+		
+		END IF; --IN_TABLE_NAME = ?
+	
+	EXCEPTION
+		WHEN OTHERS THEN
+			ROLLBACK;
+			retcode := 'E';
+			retmsg  := 'AUDIT FAILURE!' || SQLERRM;
+	END prc_apply_auto_close;
+
+END;
