@@ -1,0 +1,15 @@
+select s.sales_group, c.*
+  from hopemdm.hm_customers c, hopemdm.Hm_Customer_Sales_Data s
+ where c.row_id = s.customer_id
+      
+   and c.created > sysdate - 30
+   and c.market_micro_ent is null
+   and c.account_group = '0211'
+   and s.sales_group in
+       (select v.company_code
+          from hm_fnd_values v
+         where v.value_set_id = 'MarketMicroEnt');
+         
+
+
+¼à¿ØÊÐ³¡Ð¡Þ±
