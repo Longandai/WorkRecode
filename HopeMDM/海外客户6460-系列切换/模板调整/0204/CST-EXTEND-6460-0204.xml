@@ -2,7 +2,7 @@
 <excelField>
 	<title>数据导入</title>
 	<sheetName startRow="4" startCol="1" dbTableName="HM_APPLY_CUSTOMER_IMP" KeyCols="">
-		CST-EXTEND-6460-OBD-0204
+		CST-EXTEND-6460-0204
 	</sheetName>
 	<cols dbName="CUSTOMER_NUMBER" DataType="VARCHAR">CUSTOMER_NUMBER</cols>	
 	<cols dbName="RECON_ACCOUNT" DataType="VARCHAR">RECON_ACCOUNT</cols>
@@ -18,5 +18,13 @@
 	<cols dbName="PORT" DataType="VARCHAR">PORT</cols>
 	<cols dbName="REGIONAL_GM_MANAGER" DataType="VARCHAR">REGIONAL_GM_MANAGER</cols>
 	<cols dbName="CUSTOMER_MANAGER" DataType="VARCHAR">CUSTOMER_MANAGER</cols>
-	<cols dbName="ASSISTANT_CUST_MGR" DataType="VARCHAR">ASSISTANT_CUST_MGR</cols>  		
+	<cols dbName="ASSISTANT_CUST_MGR" DataType="VARCHAR">ASSISTANT_CUST_MGR</cols> 
+	<cols dbName="DELIVERING_PLANT" DataType="VARCHAR">DELIVERING_PLANT</cols>
+	<cols dbName="CUSTOMER_PRICE_PROCEDURE" DataType="VARCHAR">CUSTOMER_PRICE_PROCEDURE</cols>
+	<cols dbName="PRICE_GROUP" DataType="VARCHAR">PRICE_GROUP</cols>
+	<cols dbName="ACCT_ASSGMT_GROUP" DataType="VARCHAR">ACCT_ASSGMT_GROUP</cols>
+	<cols dbName="LOAD_PORT" DataType="VARCHAR">LOAD_PORT</cols>
+	<cols dbName="DEST_PORT" DataType="VARCHAR">DEST_PORT</cols>
+	<cols dbName="SALES_REP" DataType="VARCHAR">SALES_REP</cols>
+	<cols dbName="SALES_AGENT" DataType="VARCHAR">SALES_AGENT</cols> 		
 </excelField> 
