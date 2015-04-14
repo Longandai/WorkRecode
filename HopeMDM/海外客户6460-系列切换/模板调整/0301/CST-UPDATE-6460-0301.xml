@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="GBK" ?>
+<excelField>
+	<title>数据导入</title>
+	<sheetName startRow="4" startCol="1" dbTableName="HM_APPLY_CUSTOMER_IMP" KeyCols="">
+		CST-UPDATE-6460-0301
+	</sheetName>
+	<cols dbName="CUSTOMER_NUMBER" DataType="VARCHAR">CUSTOMER_NUMBER</cols>	
+	<cols dbName="CUSTOMER_NAME" DataType="VARCHAR">CUSTOMER_NAME</cols>
+	<cols dbName="NAME2" DataType="VARCHAR">NAME2</cols> 
+	<cols dbName="SEARCH_TERMS" DataType="VARCHAR">SEARCH_TERMS</cols> 
+	<cols dbName="STREET" DataType="VARCHAR">STREET</cols>
+	<cols dbName="DISTRICT" DataType="VARCHAR">DISTRICT</cols>	
+	<cols dbName="POSTAL_CODE" DataType="VARCHAR">POSTAL_CODE</cols>			
+	<cols dbName="CITY" DataType="VARCHAR">CITY</cols>
+	<cols dbName="CUSTOMER_COUNTRY" DataType="VARCHAR">CUSTOMER_COUNTRY</cols>
+	<cols dbName="REGION" DataType="VARCHAR">REGION</cols> 
+	<cols dbName="TELEPHONE" DataType="VARCHAR">TELEPHONE</cols> 
+	<cols dbName="FAX" DataType="VARCHAR">FAX</cols>
+	<cols dbName="EMAIL" DataType="VARCHAR">EMAIL</cols> 
+	<cols dbName="INDUSTRY" DataType="VARCHAR">INDUSTRY</cols>
+	<cols dbName="CONTACT_PERSON" DataType="VARCHAR">CONTACT_PERSON</cols> 
+	<cols dbName="CONTACT_PERSON_DEPARTMENT" DataType="VARCHAR">CONTACT_PERSON_DEPARTMENT</cols>
+	<cols dbName="RECON_ACCOUNT" DataType="VARCHAR">RECON_ACCOUNT</cols>
+	<cols dbName="CASH_MANAGEMENT_GROUP" DataType="VARCHAR">CASH_MANAGEMENT_GROUP</cols>		
+	<cols dbName="TERMS_OF_PAYMENT" DataType="VARCHAR">TERMS_OF_PAYMENT</cols>
+	<cols dbName="PAYMENT_METHODS" DataType="VARCHAR">PAYMENT_METHODS</cols> 
+</excelField>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="GBK" ?>
+<excelField>
+	<title>数据导入</title>
+	<sheetName startRow="4" startCol="1" dbTableName="HM_APPLY_CUSTOMER_IMP" KeyCols="">
+		CST-EXTEND-6460-0301
+	</sheetName>
+	<cols dbName="CUSTOMER_NUMBER" DataType="VARCHAR">CUSTOMER_NUMBER</cols>	
+	<cols dbName="RECON_ACCOUNT" DataType="VARCHAR">RECON_ACCOUNT</cols>
+	<cols dbName="CASH_MANAGEMENT_GROUP" DataType="VARCHAR">CASH_MANAGEMENT_GROUP</cols>		
+	<cols dbName="TERMS_OF_PAYMENT" DataType="VARCHAR">TERMS_OF_PAYMENT</cols>
+	<cols dbName="PAYMENT_METHODS" DataType="VARCHAR">PAYMENT_METHODS</cols>
+</excelField> 
