@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="GBK" ?>
+<excelField>
+	<title>数据导入</title>
+	<sheetName startRow="4" startCol="1" dbTableName="HM_APPLY_CUSTOMER_IMP" KeyCols="">
+		CST-EXTEND-6460-Z001
+	</sheetName>
+	<cols dbName="CUSTOMER_NUMBER" DataType="VARCHAR">CUSTOMER_NUMBER</cols>	
+	<cols dbName="SEARCH_TERMS2" DataType="VARCHAR">SEARCH_TERMS2</cols>
+	<cols dbName="SALES_DISTRICT" DataType="VARCHAR">SALES_DISTRICT</cols> 
+	<cols dbName="SALES_OFFICE" DataType="VARCHAR">SALES_OFFICE</cols>	
+	<cols dbName="SALES_GROUP" DataType="VARCHAR">SALES_GROUP</cols>
+</excelField> 
