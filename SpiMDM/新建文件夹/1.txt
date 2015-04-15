@@ -1,0 +1,21 @@
+begin
+  for cur_row in (select * from temp_general x where x.last_upd_by = 'auto') loop
+    --找到离这次修改最近的一次修改记录，两次记录作对比
+    for cur_his in (select *
+                      from temp_general x
+                     where x.last_upd =
+                           (select max(x.last_upd)
+                              from temp_general x
+                             where x.last_upd < cur_row.last_upd
+                               and x.row_id = cur_row.row_id)
+                       and x.row_id = cur_row.row_id) loop
+      if   cur_row.purchase_stauts !=   cur_his.purchase_stauts then
+        if (cur_row.purchase_stauts = '0' and cur_row.multi_plt_status != '07') or cur_row.purchase_stauts = '1' then
+          insert into temp_rowid3(row_id) values(cur_row.material_code);
+        end if; 
+               
+      end if;             
+    end loop;
+  end loop;
+  commit;
+end;
