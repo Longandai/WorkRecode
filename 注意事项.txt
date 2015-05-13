@@ -7,3 +7,4 @@
 
 [解除数据库用户锁定]alter user hopemdm account unlock;
 
+测试环境重起等操作发邮件到psi.dsj@haier.com
