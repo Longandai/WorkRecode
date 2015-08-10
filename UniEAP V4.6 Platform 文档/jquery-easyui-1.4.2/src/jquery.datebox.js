@@ -254,6 +254,12 @@
 				});
 				doEnter(target);
 			}
+		},{//增加清空按钮
+			text: function(target){return $(target).datebox('options').clearText||'X';},
+			handler: function(target){
+				$(target).combo('setValue', '').combo('setText', ''); 
+				$(this).closest('div.combo-panel').panel('close');
+			}
 		},{
 			text: function(target){return $(target).datebox('options').closeText;},
 			handler: function(target){

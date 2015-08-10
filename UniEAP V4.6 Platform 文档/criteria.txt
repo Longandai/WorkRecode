@@ -1,0 +1,20 @@
+return diseaseDao
+					.createCriteria(
+							Restrictions.or(Restrictions.ilike("name", nWord),
+									Restrictions.ilike("pinyin", pWord),
+									Restrictions.ilike("pinyinShort", pWord),
+									Restrictions.ilike("linkDisease", nWord),
+									Restrictions.ilike("linkDisPinyin", pWord),
+									Restrictions.like("linkDisPinyinShort",
+											pWord)))
+					.setCacheable(true)
+					.setProjection(
+							Projections
+									.projectionList()
+									.add(Projections.alias(
+											Projections.property("id"), "id"))
+									.add(Projections.alias(
+											Projections.property("name"),
+											"name")))
+					.setResultTransformer(
+							Transformers.aliasToBean(Disease.class)).list();
