@@ -1,0 +1,14 @@
+declare
+ retcode varchar(20);
+  retmsg varchar(2000);
+   retacionid varchar(20);
+begin
+  -- Call the procedure
+  comm_util.prc_aoto_extend_grant('X0256',
+                                 retcode,
+                                retmsg,
+                                  retacionid);
+   dbms_output.put_line(retcode);
+   dbms_output.put_line(retmsg);
+   dbms_output.put_line(retacionid);
+end;
