@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WL5G3N0:definitions name="QueryVendorCompanyInfoFromMDM" targetNamespace="http://www.example.org/QueryVendorCompanyInfoFromMDM/" xmlns:WL5G3N0="http://schemas.xmlsoap.org/wsdl/" xmlns:WL5G3N1="http://www.example.org/QueryVendorCompanyInfoFromMDM/" xmlns:WL5G3N2="http://schemas.xmlsoap.org/wsdl/soap/">
+  <WL5G3N0:types>
+    <xsd:schema targetNamespace="http://www.example.org/QueryVendorCompanyInfoFromMDM/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://www.example.org/QueryVendorCompanyInfoFromMDM/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+      <xsd:element name="QueryVendorCompanyInfoFromMDM">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="CurrentPage" type="xsd:int"/>
+            <xsd:element name="StartTime" type="xsd:string"/>
+            <xsd:element name="EndTime" type="xsd:string"/>
+            <xsd:element name="Dept" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="QueryVendorCompanyInfoFromMDMResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element maxOccurs="unbounded" minOccurs="0" name="out" type="tns:outType"/>
+            <xsd:element name="header" type="tns:headerType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:complexType name="outType">
+        <xsd:sequence>
+          <xsd:element name="ROW_ID" type="xsd:string"/>
+          <xsd:element name="VENDOR_CODE" type="xsd:string"/>
+          <xsd:element name="COMPANY_CODE" type="xsd:string"/>
+          <xsd:element name="LAST_UPD_BY" type="xsd:string"/>
+          <xsd:element name="LAST_UPD" type="xsd:dateTime"/>
+          <xsd:element name="DELETE_FLAG" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="headerType">
+        <xsd:sequence>
+          <xsd:element name="CurrentPage" type="xsd:int"/>
+          <xsd:element name="PageCount" type="xsd:int"/>
+        </xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+  </WL5G3N0:types>
+  <WL5G3N0:message name="QueryVendorCompanyInfoFromMDMRequest">
+    <WL5G3N0:part element="WL5G3N1:QueryVendorCompanyInfoFromMDM" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="QueryVendorCompanyInfoFromMDMResponse">
+    <WL5G3N0:part element="WL5G3N1:QueryVendorCompanyInfoFromMDMResponse" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:portType name="QueryVendorCompanyInfoFromMDM">
+    <WL5G3N0:operation name="QueryVendorCompanyInfoFromMDM">
+      <WL5G3N0:input message="WL5G3N1:QueryVendorCompanyInfoFromMDMRequest"/>
+      <WL5G3N0:output message="WL5G3N1:QueryVendorCompanyInfoFromMDMResponse"/>
+    </WL5G3N0:operation>
+  </WL5G3N0:portType>
+  <WL5G3N0:binding name="QueryVendorCompanyInfoFromMDMSOAP" type="WL5G3N1:QueryVendorCompanyInfoFromMDM">
+    <WL5G3N2:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <WL5G3N0:operation name="QueryVendorCompanyInfoFromMDM">
+      <WL5G3N2:operation soapAction="http://www.example.org/QueryVendorCompanyInfoFromMDM/QueryVendorCompanyInfoFromMDM"/>
+      <WL5G3N0:input>
+        <WL5G3N2:body use="literal"/>
+      </WL5G3N0:input>
+      <WL5G3N0:output>
+        <WL5G3N2:body use="literal"/>
+      </WL5G3N0:output>
+    </WL5G3N0:operation>
+  </WL5G3N0:binding>
+  <WL5G3N0:service name="QueryVendorCompanyInfoFromMDM">
+    <WL5G3N0:port binding="WL5G3N1:QueryVendorCompanyInfoFromMDMSOAP" name="QueryVendorCompanyInfoFromMDMSOAP">
+      <WL5G3N2:address location="http://10.135.1.198:7001/EAI/service/MDM/QueryVendorCompanyInfoFromMDM/QueryVendorCompanyInfoFromMDM"/>
+    </WL5G3N0:port>
+  </WL5G3N0:service>
+</WL5G3N0:definitions>
